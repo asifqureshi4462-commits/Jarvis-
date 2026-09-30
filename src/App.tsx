@@ -38,6 +38,16 @@ import {
   Zap,
   Palette,
   ChevronDown,
+  Activity,
+  HardDrive,
+  BatteryCharging,
+  Thermometer,
+  GitBranch,
+  Play,
+  Download,
+  Box,
+  RotateCcw,
+  FileCode,
 } from 'lucide-react';
 
 type AssistantState =
@@ -165,7 +175,7 @@ export default function App() {
   });
   const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<'hud' | 'chat' | 'notes' | 'memory' | 'blueprint'>('hud');
+  const [activeTab, setActiveTab] = useState<'hud' | 'chat' | 'notes' | 'memory' | 'workflow' | 'blueprint'>('hud');
   const [jarvisState, setJarvisState] = useState<AssistantState>('IDLE');
   const [networkOnline, setNetworkOnline] = useState(true);
   const [ttsEnabled, setTtsEnabled] = useState(true);
@@ -174,11 +184,157 @@ export default function App() {
   const [statusMessage, setStatusMessage] = useState('JARVIS Core initialized. Awaiting commands.');
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
 
+  // Build Workflow state and CI/CD simulation runner
+  interface BuildStep {
+    id: number;
+    name: string;
+    status: 'idle' | 'running' | 'success' | 'failed';
+    duration?: string;
+    log: string;
+  }
+
+  const initialBuildSteps: BuildStep[] = [
+    { id: 1, name: 'Checkout Repository (fetch-depth: 1)', status: 'idle', log: 'Checked out branch main at commit 4f29a0c...' },
+    { id: 2, name: 'Set up JDK 17 (Eclipse Temurin)', status: 'idle', log: 'Configured openjdk-17-jdk environment variables (JAVA_HOME set)' },
+    { id: 3, name: 'Set up Android SDK Platform 34', status: 'idle', log: 'Installed build-tools;34.0.0 and platforms;android-34' },
+    { id: 4, name: 'Architecture Verification Gate', status: 'idle', log: 'Scanned app/src: 0 Kotlin files found. Compliant Pure Java 17.' },
+    { id: 5, name: 'Compile Gradle assembleDebug', status: 'idle', log: 'Running javac 17, dx, aapt2 packaging... BUILD SUCCESSFUL in 38s' },
+    { id: 6, name: 'Execute JUnit 4 Unit Tests', status: 'idle', log: 'CalculatorEngineTest, ToolRegistryTest, CryptoManagerTest: 14/14 passed' },
+    { id: 7, name: 'Generate & Upload APK Artifact', status: 'idle', log: 'Compressed and published: app/build/outputs/apk/debug/app-debug.apk (18.4 MB)' },
+  ];
+
+  const [buildSteps, setBuildSteps] = useState<BuildStep[]>(initialBuildSteps);
+  const [buildRunning, setBuildRunning] = useState(false);
+  const [buildSuccess, setBuildSuccess] = useState(false);
+  const [activeWorkflowTab, setActiveWorkflowTab] = useState<'ci' | 'phone-guide' | 'yaml'>('ci');
+  const [buildLogs, setBuildLogs] = useState<string[]>([
+    'JARVIS CI/CD Runner daemon v2.4 initialized.',
+    'Tracking workflow: .github/workflows/build.yml',
+    'Ready to execute build pipeline. Click "Run CI/CD Pipeline" to begin.',
+  ]);
+
+  const runBuildPipeline = () => {
+    if (buildRunning) return;
+    setBuildRunning(true);
+    setBuildSuccess(false);
+    setBuildSteps(initialBuildSteps.map((s) => ({ ...s, status: 'idle' })));
+    setBuildLogs(['[START] GitHub Actions Workflow Dispatch triggered on branch: main']);
+
+    const stepTimings = [600, 700, 750, 500, 1200, 700, 600];
+
+    const executeStep = (index: number) => {
+      if (index >= initialBuildSteps.length) {
+        setBuildRunning(false);
+        setBuildSuccess(true);
+        setBuildLogs((prev) => [
+          ...prev,
+          '[FINISH] Pipeline completed successfully. 7/7 jobs passed.',
+          'Artifact jarvis-debug-apk is ready for deployment.',
+        ]);
+        return;
+      }
+
+      setBuildSteps((prev) =>
+        prev.map((s, idx) => (idx === index ? { ...s, status: 'running' } : s))
+      );
+
+      setBuildLogs((prev) => [
+        ...prev,
+        `> Step [${index + 1}/${initialBuildSteps.length}]: ${initialBuildSteps[index].name}...`,
+      ]);
+
+      setTimeout(() => {
+        setBuildSteps((prev) =>
+          prev.map((s, idx) =>
+            idx === index
+              ? {
+                  ...s,
+                  status: 'success',
+                  duration: `${((stepTimings[index] + Math.random() * 200) / 1000).toFixed(1)}s`,
+                }
+              : s
+          )
+        );
+
+        setBuildLogs((prev) => [...prev, `  ${initialBuildSteps[index].log}`, `  ✓ Job completed.`]);
+
+        executeStep(index + 1);
+      }, stepTimings[index]);
+    };
+
+    executeStep(0);
+  };
+
   // Sync theme with root dataset and localStorage
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', currentTheme);
     localStorage.setItem('jarvis-theme', currentTheme);
   }, [currentTheme]);
+
+  // Hardware Telemetry state for futuristic simulation
+  const [telemetry, setTelemetry] = useState({
+    cpu: 24,
+    ram: 48.6,
+    ramUsedGb: 3.89,
+    ramTotalGb: 8.0,
+    battery: 89,
+    batteryStatus: 'Discharging',
+    tempC: 31.4,
+    clockGhz: 2.84,
+    cpuHistory: [18, 22, 28, 24, 32, 26, 29, 24, 31, 25, 27, 24],
+  });
+
+  // Real-time telemetry fluctuation reactive to JARVIS state
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTelemetry((prev) => {
+        let baseCpu = 22;
+        let baseTemp = 31.2;
+        let baseClock = 2.40;
+
+        if (jarvisState === 'PROCESSING' || jarvisState === 'THINKING' || jarvisState === 'TOOL_EXECUTION') {
+          baseCpu = 72;
+          baseTemp = 36.4;
+          baseClock = 3.19;
+        } else if (jarvisState === 'LISTENING' || jarvisState === 'SPEAKING') {
+          baseCpu = 46;
+          baseTemp = 33.2;
+          baseClock = 2.84;
+        }
+
+        const newCpu = Math.min(98, Math.max(12, Math.round(baseCpu + (Math.random() * 14 - 7))));
+        const newTemp = +(baseTemp + (Math.random() * 1.0 - 0.5)).toFixed(1);
+        const newClock = +(baseClock + (Math.random() * 0.16 - 0.08)).toFixed(2);
+        const newRam = +(47.8 + (Math.random() * 3.2)).toFixed(1);
+        const newRamUsed = +((newRam / 100) * 8.0).toFixed(2);
+        const newHistory = [...prev.cpuHistory.slice(1), newCpu];
+
+        return {
+          cpu: newCpu,
+          ram: newRam,
+          ramUsedGb: newRamUsed,
+          ramTotalGb: 8.0,
+          battery: prev.battery,
+          batteryStatus: prev.batteryStatus,
+          tempC: newTemp,
+          clockGhz: newClock,
+          cpuHistory: newHistory,
+        };
+      });
+    }, 2000);
+
+    return () => clearInterval(timer);
+  }, [jarvisState]);
+
+  const triggerCoreSpike = () => {
+    setTelemetry((prev) => ({
+      ...prev,
+      cpu: 89,
+      clockGhz: 3.36,
+      tempC: 37.8,
+      cpuHistory: [...prev.cpuHistory.slice(1), 89],
+    }));
+  };
 
   // Local storage backed state
   const [notes, setNotes] = useState<NoteItem[]>(() => [
@@ -490,14 +646,15 @@ export default function App() {
         </div>
 
         {/* Clean text navigation tabs */}
-        <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-[var(--jarvis-text-muted)]">
+        <nav className="hidden md:flex items-center gap-5 text-sm font-medium text-[var(--jarvis-text-muted)]">
           {(
             [
               { id: 'hud', label: 'HUD Console' },
               { id: 'chat', label: 'AI Command Chat' },
               { id: 'notes', label: 'Notes Vault' },
               { id: 'memory', label: 'Memory Bank' },
-              { id: 'blueprint', label: 'Master Technical Blueprint' },
+              { id: 'workflow', label: 'Build Workflow' },
+              { id: 'blueprint', label: 'Master Blueprint' },
             ] as const
           ).map((tab) => (
             <button
@@ -626,7 +783,7 @@ export default function App() {
           animate={{ opacity: 1, y: 0 }}
           className="flex md:hidden items-center gap-1 p-1 bg-[var(--jarvis-surface-elevated)] rounded-lg border border-[var(--jarvis-border-bright)] overflow-x-auto"
         >
-          {(['hud', 'chat', 'notes', 'memory', 'blueprint'] as const).map((tab) => (
+          {(['hud', 'chat', 'notes', 'memory', 'workflow', 'blueprint'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -636,7 +793,7 @@ export default function App() {
                   : 'text-[var(--jarvis-text-muted)] hover:text-[var(--jarvis-text)]'
               }`}
             >
-              {tab === 'blueprint' ? 'Blueprint (35)' : tab}
+              {tab === 'blueprint' ? 'Blueprint (35)' : tab === 'workflow' ? 'Build CI/CD' : tab}
             </button>
           ))}
         </motion.div>
@@ -788,10 +945,191 @@ export default function App() {
 
               {/* Quick Actions & Live Telemetry Inspector */}
               <div className="lg:col-span-5 flex flex-col gap-5">
-                {/* Tool Dispatcher Sandbox */}
+                {/* Hardware Telemetry Widget */}
                 <motion.div
                   variants={cardEntrance}
                   custom={1}
+                  initial="hidden"
+                  animate="visible"
+                  className="bg-[var(--jarvis-surface)] border border-[var(--jarvis-border)] rounded-xl p-5 shadow-lg transition-colors duration-300 relative overflow-hidden"
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="text-sm font-semibold text-[var(--jarvis-text)] flex items-center gap-2">
+                      <Activity className="w-4 h-4 text-[var(--jarvis-accent)] animate-pulse" />
+                      <span>Hardware Telemetry</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono text-[var(--jarvis-accent)] bg-[var(--jarvis-accent-dim)] px-2 py-0.5 rounded border border-[var(--jarvis-accent)]/20">
+                        ARM64-V8A BUS
+                      </span>
+                      <button
+                        onClick={triggerCoreSpike}
+                        title="Simulate core spike"
+                        className="text-[10px] text-[var(--jarvis-text-muted)] hover:text-[var(--jarvis-accent)] border border-[var(--jarvis-border)] hover:border-[var(--jarvis-accent)]/40 px-2 py-0.5 rounded transition-all flex items-center gap-1"
+                      >
+                        <Zap className="w-2.5 h-2.5" />
+                        <span>Spike</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 3 Core Metric Sectors */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {/* 1. CPU Gauge & Sparkline */}
+                    <div className="p-3 rounded-lg bg-[var(--jarvis-surface-elevated)] border border-[var(--jarvis-border-bright)] flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between text-xs text-[var(--jarvis-text-muted)] mb-1">
+                          <span className="flex items-center gap-1">
+                            <Cpu className="w-3 h-3 text-[var(--jarvis-accent)]" /> CPU Core
+                          </span>
+                          <span className="font-mono text-[11px] text-[var(--jarvis-text-muted)]">
+                            {telemetry.clockGhz} GHz
+                          </span>
+                        </div>
+                        <div className="flex items-baseline gap-1.5 my-1">
+                          <span className="text-xl font-bold font-mono text-[var(--jarvis-text)] tabular-nums">
+                            {telemetry.cpu}%
+                          </span>
+                          <span className="text-[10px] text-[var(--jarvis-text-muted)]">Load</span>
+                        </div>
+                      </div>
+
+                      {/* Mini Live Sparkline Chart */}
+                      <div className="mt-2 h-7 w-full flex items-end">
+                        <svg className="w-full h-full overflow-visible" viewBox="0 0 110 24">
+                          <defs>
+                            <linearGradient id="cpuGradient" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="var(--jarvis-accent)" stopOpacity="0.4" />
+                              <stop offset="100%" stopColor="var(--jarvis-accent)" stopOpacity="0.0" />
+                            </linearGradient>
+                          </defs>
+                          {/* Area Fill */}
+                          <path
+                            d={`M 0,24 ${telemetry.cpuHistory
+                              .map((val, i) => `L ${i * 10},${24 - (val / 100) * 22}`)
+                              .join(' ')} L 110,24 Z`}
+                            fill="url(#cpuGradient)"
+                          />
+                          {/* Stroke Line */}
+                          <path
+                            d={`M 0,${24 - (telemetry.cpuHistory[0] / 100) * 22} ${telemetry.cpuHistory
+                              .map((val, i) => `L ${i * 10},${24 - (val / 100) * 22}`)
+                              .join(' ')}`}
+                            fill="none"
+                            stroke="var(--jarvis-accent)"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      </div>
+
+                      {/* Progress Bar */}
+                      <div className="w-full bg-[var(--jarvis-bg)] rounded-full h-1 mt-2 overflow-hidden border border-[var(--jarvis-border)]">
+                        <motion.div
+                          animate={{ width: `${telemetry.cpu}%` }}
+                          transition={{ duration: 0.5, ease: 'easeOut' }}
+                          className="h-full bg-[var(--jarvis-accent)] shadow-[0_0_6px_var(--jarvis-accent)]"
+                        />
+                      </div>
+                    </div>
+
+                    {/* 2. RAM (Memory) Gauge */}
+                    <div className="p-3 rounded-lg bg-[var(--jarvis-surface-elevated)] border border-[var(--jarvis-border-bright)] flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between text-xs text-[var(--jarvis-text-muted)] mb-1">
+                          <span className="flex items-center gap-1">
+                            <HardDrive className="w-3 h-3 text-[var(--jarvis-accent)]" /> LPDDR5X RAM
+                          </span>
+                          <span className="font-mono text-[11px] text-[var(--jarvis-text-muted)]">
+                            {telemetry.ramUsedGb} / {telemetry.ramTotalGb}GB
+                          </span>
+                        </div>
+                        <div className="flex items-baseline gap-1.5 my-1">
+                          <span className="text-xl font-bold font-mono text-[var(--jarvis-text)] tabular-nums">
+                            {telemetry.ram}%
+                          </span>
+                          <span className="text-[10px] text-[var(--jarvis-text-muted)]">Allocated</span>
+                        </div>
+                      </div>
+
+                      {/* Segmented Memory Visualizer */}
+                      <div className="mt-3 space-y-1.5">
+                        <div className="flex gap-1 h-2 w-full">
+                          <div
+                            className="h-full rounded-sm bg-[var(--jarvis-accent)] shadow-[0_0_4px_var(--jarvis-accent-glow)]"
+                            style={{ width: '42%' }}
+                            title="Android System Heap"
+                          />
+                          <div
+                            className="h-full rounded-sm bg-indigo-400 opacity-80"
+                            style={{ width: `${Math.max(6, telemetry.ram - 42)}%` }}
+                            title="JARVIS AI Cache"
+                          />
+                          <div
+                            className="h-full rounded-sm bg-[var(--jarvis-bg)] border border-[var(--jarvis-border)] flex-1"
+                            title="Available Buffer"
+                          />
+                        </div>
+                        <div className="flex justify-between text-[10px] text-[var(--jarvis-text-muted)] font-mono">
+                          <span>App: 1.4GB</span>
+                          <span>Free: {(8.0 - telemetry.ramUsedGb).toFixed(1)}GB</span>
+                        </div>
+                      </div>
+
+                      {/* Footer state */}
+                      <div className="text-[10px] text-[var(--jarvis-text-muted)] mt-2 flex items-center justify-between pt-1 border-t border-[var(--jarvis-border)]">
+                        <span>GC: Dormant</span>
+                        <span className="text-emerald-400 font-mono">NOMINAL</span>
+                      </div>
+                    </div>
+
+                    {/* 3. Battery & Thermal State */}
+                    <div className="p-3 rounded-lg bg-[var(--jarvis-surface-elevated)] border border-[var(--jarvis-border-bright)] flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between text-xs text-[var(--jarvis-text-muted)] mb-1">
+                          <span className="flex items-center gap-1">
+                            <BatteryCharging className="w-3 h-3 text-emerald-400" /> Battery Cell
+                          </span>
+                          <span className="flex items-center gap-0.5 font-mono text-[11px] text-[var(--jarvis-text-muted)]">
+                            <Thermometer className="w-2.5 h-2.5 text-amber-400" />
+                            {telemetry.tempC}°C
+                          </span>
+                        </div>
+                        <div className="flex items-baseline gap-1.5 my-1">
+                          <span className="text-xl font-bold font-mono text-[var(--jarvis-text)] tabular-nums">
+                            {telemetry.battery}%
+                          </span>
+                          <span className="text-[10px] text-emerald-400">4.18V · Stable</span>
+                        </div>
+                      </div>
+
+                      {/* Battery Bar */}
+                      <div className="mt-3">
+                        <div className="w-full bg-[var(--jarvis-bg)] rounded-full h-2 border border-[var(--jarvis-border)] p-0.5 flex items-center">
+                          <motion.div
+                            animate={{ width: `${telemetry.battery}%` }}
+                            className="h-full bg-emerald-400 rounded-full shadow-[0_0_6px_rgba(52,211,153,0.4)]"
+                          />
+                        </div>
+                        <div className="flex justify-between text-[10px] text-[var(--jarvis-text-muted)] font-mono mt-1.5">
+                          <span>Health: 98%</span>
+                          <span>SoC Temp: {telemetry.tempC}°C</span>
+                        </div>
+                      </div>
+
+                      {/* Power Profile */}
+                      <div className="text-[10px] text-[var(--jarvis-text-muted)] mt-2 flex items-center justify-between pt-1 border-t border-[var(--jarvis-border)]">
+                        <span>Governor: Interactive</span>
+                        <span className="text-[var(--jarvis-accent)] font-mono">45W DUAL</span>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Tool Dispatcher Sandbox */}
+                <motion.div
+                  variants={cardEntrance}
+                  custom={2}
                   initial="hidden"
                   animate="visible"
                   className="bg-[var(--jarvis-surface)] border border-[var(--jarvis-border)] rounded-xl p-5 shadow-lg transition-colors duration-300"
@@ -867,7 +1205,7 @@ export default function App() {
                 {/* Offline vs Online Capability Matrix */}
                 <motion.div
                   variants={cardEntrance}
-                  custom={2}
+                  custom={3}
                   initial="hidden"
                   animate="visible"
                   className="bg-[var(--jarvis-surface)] border border-[var(--jarvis-border)] rounded-xl p-5 shadow-lg transition-colors duration-300"
@@ -1152,7 +1490,472 @@ export default function App() {
             </motion.div>
           )}
 
-          {/* TAB 5: MASTER TECHNICAL BLUEPRINT (35 SECTIONS) */}
+          {/* TAB 5: BUILD WORKFLOW & CI/CD */}
+          {activeTab === 'workflow' && (
+            <motion.div
+              key="workflow-view"
+              variants={tabViewTransition}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="space-y-6"
+            >
+              {/* Header Panel */}
+              <div className="bg-[var(--jarvis-surface)] border border-[var(--jarvis-border)] rounded-xl p-5 shadow-lg transition-colors duration-300 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <GitBranch className="w-5 h-5 text-[var(--jarvis-accent)]" />
+                    <h2 className="text-lg font-bold text-[var(--jarvis-text)]">
+                      Automated Build & CI/CD Pipeline
+                    </h2>
+                  </div>
+                  <p className="text-xs text-[var(--jarvis-text-muted)]">
+                    Continuous Integration via GitHub Actions · Phone-only Termux + Acode + AndroidIDE development
+                  </p>
+                </div>
+
+                {/* Sub-tab Switcher */}
+                <div className="flex items-center gap-1 p-1 bg-[var(--jarvis-surface-elevated)] rounded-lg border border-[var(--jarvis-border-bright)] self-start md:self-auto text-xs">
+                  <button
+                    onClick={() => setActiveWorkflowTab('ci')}
+                    className={`px-3 py-1.5 rounded-md font-medium transition-all ${
+                      activeWorkflowTab === 'ci'
+                        ? 'bg-[var(--jarvis-accent-dim)] text-[var(--jarvis-accent)] border border-[var(--jarvis-accent)]/30'
+                        : 'text-[var(--jarvis-text-muted)] hover:text-[var(--jarvis-text)]'
+                    }`}
+                  >
+                    CI/CD Simulator
+                  </button>
+                  <button
+                    onClick={() => setActiveWorkflowTab('phone-guide')}
+                    className={`px-3 py-1.5 rounded-md font-medium transition-all ${
+                      activeWorkflowTab === 'phone-guide'
+                        ? 'bg-[var(--jarvis-accent-dim)] text-[var(--jarvis-accent)] border border-[var(--jarvis-accent)]/30'
+                        : 'text-[var(--jarvis-text-muted)] hover:text-[var(--jarvis-text)]'
+                    }`}
+                  >
+                    Phone Setup Guide
+                  </button>
+                  <button
+                    onClick={() => setActiveWorkflowTab('yaml')}
+                    className={`px-3 py-1.5 rounded-md font-medium transition-all ${
+                      activeWorkflowTab === 'yaml'
+                        ? 'bg-[var(--jarvis-accent-dim)] text-[var(--jarvis-accent)] border border-[var(--jarvis-accent)]/30'
+                        : 'text-[var(--jarvis-text-muted)] hover:text-[var(--jarvis-text)]'
+                    }`}
+                  >
+                    build.yml Spec
+                  </button>
+                </div>
+              </div>
+
+              {/* VIEW 1: CI/CD PIPELINE SIMULATOR */}
+              {activeWorkflowTab === 'ci' && (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                  {/* Left Column: Pipeline Stages */}
+                  <div className="lg:col-span-5 flex flex-col gap-4">
+                    <div className="bg-[var(--jarvis-surface)] border border-[var(--jarvis-border)] rounded-xl p-5 shadow-lg">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <Box className="w-4 h-4 text-[var(--jarvis-accent)]" />
+                          <span className="text-sm font-semibold text-[var(--jarvis-text)]">Pipeline Jobs</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {buildRunning && (
+                            <span className="text-xs text-[var(--jarvis-accent)] font-mono animate-pulse">
+                              RUNNING...
+                            </span>
+                          )}
+                          {buildSuccess && (
+                            <span className="text-xs text-emerald-400 font-mono flex items-center gap-1">
+                              <CheckCircle2 className="w-3.5 h-3.5" /> 7/7 PASSED
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        {buildSteps.map((step) => (
+                          <div
+                            key={step.id}
+                            className={`p-2.5 rounded-lg border text-xs flex items-center justify-between transition-all ${
+                              step.status === 'running'
+                                ? 'bg-[var(--jarvis-accent-dim)] border-[var(--jarvis-accent)]/50 text-[var(--jarvis-text)]'
+                                : step.status === 'success'
+                                ? 'bg-[var(--jarvis-surface-elevated)] border-emerald-500/30 text-[var(--jarvis-text)]'
+                                : 'bg-[var(--jarvis-surface-elevated)] border-[var(--jarvis-border)] text-[var(--jarvis-text-muted)]'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5">
+                              {step.status === 'success' ? (
+                                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                              ) : step.status === 'running' ? (
+                                <div className="w-4 h-4 rounded-full border-2 border-[var(--jarvis-accent)] border-t-transparent animate-spin shrink-0" />
+                              ) : (
+                                <div className="w-4 h-4 rounded-full border border-[var(--jarvis-border-bright)] flex items-center justify-center text-[10px] text-[var(--jarvis-text-muted)] font-mono shrink-0">
+                                  {step.id}
+                                </div>
+                              )}
+                              <span className="font-medium">{step.name}</span>
+                            </div>
+                            {step.duration && (
+                              <span className="text-[11px] font-mono text-[var(--jarvis-accent)]">
+                                {step.duration}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="mt-5 pt-4 border-t border-[var(--jarvis-border)] flex items-center gap-3">
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          disabled={buildRunning}
+                          onClick={runBuildPipeline}
+                          className={`flex-1 py-2.5 px-4 rounded-lg font-semibold text-xs tracking-wider uppercase transition-all flex items-center justify-center gap-2 ${
+                            buildRunning
+                              ? 'bg-[var(--jarvis-surface-elevated)] text-[var(--jarvis-text-muted)] cursor-not-allowed border border-[var(--jarvis-border)]'
+                              : 'bg-[var(--jarvis-accent)] text-[var(--jarvis-bg)] hover:opacity-90 shadow-[0_0_12px_var(--jarvis-accent-glow)]'
+                          }`}
+                        >
+                          <Play className="w-3.5 h-3.5 fill-current" />
+                          <span>{buildRunning ? 'Executing Build...' : 'Run CI/CD Pipeline'}</span>
+                        </motion.button>
+                        <button
+                          onClick={() => {
+                            setBuildSteps(initialBuildSteps);
+                            setBuildSuccess(false);
+                            setBuildLogs(['Pipeline reset. Ready to run.']);
+                          }}
+                          title="Reset"
+                          className="p-2.5 rounded-lg bg-[var(--jarvis-surface-elevated)] border border-[var(--jarvis-border-bright)] text-[var(--jarvis-text-muted)] hover:text-[var(--jarvis-text)]"
+                        >
+                          <RotateCcw className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Artifact Card (Shows on success) */}
+                    <AnimatePresence>
+                      {buildSuccess && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10, scale: 0.96 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.95 }}
+                          className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 shadow-lg text-xs"
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-semibold text-emerald-400 flex items-center gap-1.5">
+                              <Box className="w-4 h-4" /> APK Artifact Ready
+                            </span>
+                            <span className="font-mono text-[11px] text-[var(--jarvis-text-muted)]">18.4 MB</span>
+                          </div>
+                          <div className="text-[11px] text-[#cbd5e1] font-mono mb-3 bg-[var(--jarvis-bg)]/80 p-2 rounded border border-[var(--jarvis-border)] overflow-x-auto">
+                            app/build/outputs/apk/debug/app-debug.apk
+                          </div>
+                          <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => {
+                              alert('Simulated Artifact Download: jarvis-debug.apk ready to transfer to Android device!');
+                            }}
+                            className="w-full py-2 rounded-lg bg-emerald-500 text-[#060b13] font-bold tracking-wide uppercase flex items-center justify-center gap-1.5"
+                          >
+                            <Download className="w-3.5 h-3.5" /> Download jarvis-debug.apk
+                          </motion.button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  {/* Right Column: Live Terminal Log Console */}
+                  <div className="lg:col-span-7 flex flex-col">
+                    <div className="bg-[#03060c] border border-[var(--jarvis-border)] rounded-xl flex flex-col h-[520px] overflow-hidden shadow-2xl">
+                      {/* Terminal Header */}
+                      <div className="px-4 py-2.5 bg-[var(--jarvis-surface-elevated)] border-b border-[var(--jarvis-border)] flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <Terminal className="w-3.5 h-3.5 text-[var(--jarvis-accent)]" />
+                          <span className="font-mono text-[#cbd5e1] text-[11px]">
+                            ubuntu-latest (GitHub Runner) - bash
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2.5 h-2.5 rounded-full bg-rose-500/70" />
+                          <span className="w-2.5 h-2.5 rounded-full bg-amber-500/70" />
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/70" />
+                        </div>
+                      </div>
+
+                      {/* Log Output Stream */}
+                      <div className="flex-1 p-4 font-mono text-xs overflow-y-auto space-y-1.5 text-[#9bb0cb]">
+                        {buildLogs.map((log, i) => (
+                          <div
+                            key={i}
+                            className={`leading-relaxed ${
+                              log.startsWith('[START]') || log.startsWith('[FINISH]')
+                                ? 'text-[var(--jarvis-accent)] font-bold'
+                                : log.startsWith('>')
+                                ? 'text-white'
+                                : log.includes('✓')
+                                ? 'text-emerald-400'
+                                : 'text-[#8299b8]'
+                            }`}
+                          >
+                            {log}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Terminal Footer */}
+                      <div className="px-4 py-2 border-t border-[var(--jarvis-border)] bg-[var(--jarvis-surface-elevated)]/60 flex items-center justify-between text-[11px] font-mono text-[var(--jarvis-text-muted)]">
+                        <span>JDK 17.0.10 · Gradle 8.4 · Android SDK 34</span>
+                        <span>STATUS: {buildRunning ? 'BUILDING' : buildSuccess ? 'SUCCESS' : 'IDLE'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* VIEW 2: PHONE-ONLY DEVELOPMENT GUIDE */}
+              {activeWorkflowTab === 'phone-guide' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="bg-[var(--jarvis-surface)] border border-[var(--jarvis-border)] rounded-xl p-5 shadow-lg">
+                    <div className="text-xs font-mono text-[var(--jarvis-accent)] mb-1">STAGE 1: TERMINAL</div>
+                    <h3 className="text-base font-bold text-[var(--jarvis-text)] mb-2 flex items-center gap-2">
+                      <Terminal className="w-4 h-4 text-[var(--jarvis-accent)]" /> Termux Environment Setup
+                    </h3>
+                    <p className="text-xs text-[var(--jarvis-text-muted)] mb-3 leading-relaxed">
+                      Install Termux from F-Droid. Open the terminal and bootstrap the essential Android toolchain packages:
+                    </p>
+                    <div className="bg-[var(--jarvis-bg)] p-3 rounded-lg border border-[var(--jarvis-border)] font-mono text-xs text-[#cbd5e1] mb-2 flex items-center justify-between">
+                      <code>pkg update && pkg install openjdk-17 git -y</code>
+                      <button
+                        onClick={() => handleCopy('pkg update && pkg install openjdk-17 git -y', 'c1')}
+                        className="text-[var(--jarvis-accent)] hover:opacity-80 p-1"
+                      >
+                        {copiedSection === 'c1' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                    <div className="text-[11px] text-[var(--jarvis-text-muted)]">
+                      Grant storage permissions: <code>termux-setup-storage</code>
+                    </div>
+                  </div>
+
+                  <div className="bg-[var(--jarvis-surface)] border border-[var(--jarvis-border)] rounded-xl p-5 shadow-lg">
+                    <div className="text-xs font-mono text-[var(--jarvis-accent)] mb-1">STAGE 2: EDITING</div>
+                    <h3 className="text-base font-bold text-[var(--jarvis-text)] mb-2 flex items-center gap-2">
+                      <FileCode className="w-4 h-4 text-[var(--jarvis-accent)]" /> Code Editing in Acode / AndroidIDE
+                    </h3>
+                    <p className="text-xs text-[var(--jarvis-text-muted)] mb-3 leading-relaxed">
+                      Open Acode or AndroidIDE and map the workspace to your local folder:
+                    </p>
+                    <div className="bg-[var(--jarvis-bg)] p-3 rounded-lg border border-[var(--jarvis-border)] font-mono text-xs text-[#cbd5e1] mb-2">
+                      <code>/sdcard/projects/jarvis-android-assistant</code>
+                    </div>
+                    <p className="text-[11px] text-[var(--jarvis-text-muted)] leading-relaxed">
+                      Acode provides pristine Java syntax highlighting and XML validation without battery-draining desktop emulators.
+                    </p>
+                  </div>
+
+                  <div className="bg-[var(--jarvis-surface)] border border-[var(--jarvis-border)] rounded-xl p-5 shadow-lg">
+                    <div className="text-xs font-mono text-[var(--jarvis-accent)] mb-1">STAGE 3: GIT PUSH</div>
+                    <h3 className="text-base font-bold text-[var(--jarvis-text)] mb-2 flex items-center gap-2">
+                      <GitBranch className="w-4 h-4 text-[var(--jarvis-accent)]" /> Commit & Remote Push
+                    </h3>
+                    <p className="text-xs text-[var(--jarvis-text-muted)] mb-3 leading-relaxed">
+                      Whenever you create or modify Java/XML files, commit and push from Termux:
+                    </p>
+                    <div className="bg-[var(--jarvis-bg)] p-3 rounded-lg border border-[var(--jarvis-border)] font-mono text-xs text-[#cbd5e1] mb-2 flex items-center justify-between">
+                      <code>git add . && git commit -m "feat: command engine" && git push</code>
+                      <button
+                        onClick={() => handleCopy('git add . && git commit -m "feat: command engine" && git push', 'c2')}
+                        className="text-[var(--jarvis-accent)] hover:opacity-80 p-1"
+                      >
+                        {copiedSection === 'c2' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-[var(--jarvis-text-muted)]">
+                      Pushing to <code>main</code> triggers the GitHub Actions workflow automatically.
+                    </p>
+                  </div>
+
+                  <div className="bg-[var(--jarvis-surface)] border border-[var(--jarvis-border)] rounded-xl p-5 shadow-lg">
+                    <div className="text-xs font-mono text-[var(--jarvis-accent)] mb-1">STAGE 4: DEPLOYMENT</div>
+                    <h3 className="text-base font-bold text-[var(--jarvis-text)] mb-2 flex items-center gap-2">
+                      <Download className="w-4 h-4 text-emerald-400" /> Install APK on Phone
+                    </h3>
+                    <p className="text-xs text-[var(--jarvis-text-muted)] mb-3 leading-relaxed">
+                      Within 60–90 seconds, GitHub Actions finishes compiling your debug APK:
+                    </p>
+                    <ul className="space-y-1.5 text-xs text-[#cbd5e1]">
+                      <li className="flex items-center gap-2">
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Open GitHub repo &gt; <b>Actions</b> tab on mobile browser</span>
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Tap the latest successful workflow run</span>
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Download <code>jarvis-debug-apk.zip</code> and install <code>app-debug.apk</code>!</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+              {/* VIEW 3: YAML WORKFLOW FILE */}
+              {activeWorkflowTab === 'yaml' && (
+                <div className="bg-[var(--jarvis-surface)] border border-[var(--jarvis-border)] rounded-xl p-5 shadow-lg">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <FileCode className="w-4 h-4 text-[var(--jarvis-accent)]" />
+                      <span className="text-sm font-semibold text-[var(--jarvis-text)]">
+                        .github/workflows/build.yml
+                      </span>
+                    </div>
+                    <button
+                      onClick={() =>
+                        handleCopy(
+                          `name: Build JARVIS Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build & Verify APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Make Gradlew Executable
+        run: |
+          if [ -f "./gradlew" ]; then
+            chmod +x gradlew
+          fi
+
+      - name: Verify Architecture (Pure Java & XML)
+        run: |
+          KOTLIN_FILES=$(find app/src -name "*.kt" 2>/dev/null | wc -l)
+          if [ "$KOTLIN_FILES" -gt 0 ]; then
+            echo "ERROR: Kotlin files detected. Pure Java 17 required."
+            exit 1
+          fi
+
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Run Unit Tests
+        run: ./gradlew testDebugUnitTest --continue
+
+      - name: Upload Debug APK Artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jarvis-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 14`,
+                          'yaml'
+                        )
+                      }
+                      className="text-xs text-[var(--jarvis-accent)] hover:underline flex items-center gap-1"
+                    >
+                      {copiedSection === 'yaml' ? (
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5" />
+                      )}
+                      Copy YAML
+                    </button>
+                  </div>
+                  <div className="bg-[#040810] p-4 rounded-xl border border-[var(--jarvis-border)] font-mono text-xs text-[#9bb0cb] overflow-x-auto leading-relaxed">
+                    <pre>{`name: Build JARVIS Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build & Verify APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Make Gradlew Executable
+        run: |
+          if [ -f "./gradlew" ]; then
+            chmod +x gradlew
+          fi
+
+      - name: Verify Architecture (Pure Java & XML)
+        run: |
+          KOTLIN_FILES=$(find app/src -name "*.kt" 2>/dev/null | wc -l)
+          if [ "$KOTLIN_FILES" -gt 0 ]; then
+            echo "ERROR: Kotlin files detected. Pure Java 17 required."
+            exit 1
+          fi
+
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Run Unit Tests
+        run: ./gradlew testDebugUnitTest --continue
+
+      - name: Upload Debug APK Artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jarvis-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 14`}</pre>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {/* TAB 6: MASTER TECHNICAL BLUEPRINT (35 SECTIONS) */}
           {activeTab === 'blueprint' && (
             <motion.div
               key="blueprint-view"
