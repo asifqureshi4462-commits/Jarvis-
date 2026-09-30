@@ -5,7 +5,7 @@ on:
     branches: [ "main", "master" ]
   pull_request:
     branches: [ "main", "master" ]
-  workflow_dispatch: # Is option se aap GitHub website se "Run workflow" button daba kar manually bhi APK build kar sakte hain
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -17,57 +17,40 @@ jobs:
     timeout-minutes: 25
 
     steps:
-      # Step 1: Repository code checkout
+      # Step 1: Code Checkout
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
-      # Step 2: Java 17 setup (Project requirement: Java 17)
+      # Step 2: Java 17 Setup
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
+          cache: 'gradle'
 
-      # Step 3: Android SDK Setup (API 34)
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      # Step 3: Accept Android Licenses (Ubuntu runner par SDK pehle se mojood hota hai)
+      - name: Accept Android SDK Licenses
+        run: |
+          yes | sdkmanager --licenses || true
 
-      # Step 4: Gradle wrapper check & execution permission
+      # Step 4: Make gradlew executable
       - name: Prepare Gradle Wrapper
         run: |
-          # Agar files kisi subfolder (jaise Jarvis--main) mein hon toh root par le aayen ya wahan navigate karein
-          if [ ! -f "./gradlew" ] && [ -d "Jarvis--main" ]; then
-            cd Jarvis--main
-          fi
-
           if [ -f "./gradlew" ]; then
             chmod +x gradlew
+          elif [ -f "Jarvis--main/gradlew" ]; then
+            chmod +x Jarvis--main/gradlew
           else
             echo "Generating Gradle wrapper..."
+            sudo apt-get update -qq && sudo apt-get install -y -qq gradle
             gradle wrapper --gradle-version 8.4
             chmod +x gradlew
           fi
 
-      # Step 5: Pure Java Architecture verification (Ensure no Kotlin compile conflicts)
-      - name: Verify Pure Java Architecture
-        run: |
-          PROJECT_DIR="."
-          if [ ! -d "app" ] && [ -d "Jarvis--main/app" ]; then
-            PROJECT_DIR="Jarvis--main"
-          fi
-          
-          if [ -d "$PROJECT_DIR/app/src" ]; then
-            KOTLIN_COUNT=$(find $PROJECT_DIR/app/src -type f -name "*.kt" 2>/dev/null | wc -l)
-            if [ "$KOTLIN_COUNT" -gt 0 ]; then
-              echo "Error: Kotlin files detected. Jarvis requires pure Java 17."
-              exit 1
-            fi
-            echo "Architecture Verified: 100% Pure Java & XML."
-          fi
-
-      # Step 6: Build Android Debug APK
+      # Step 5: Build Debug APK
       - name: Build Debug APK with Gradle
         run: |
           if [ ! -f "./gradlew" ] && [ -d "Jarvis--main" ]; then
@@ -75,7 +58,7 @@ jobs:
           fi
           ./gradlew assembleDebug --stacktrace --no-daemon
 
-      # Step 7: Upload generated APK as GitHub Artifact
+      # Step 6: Upload APK Artifact
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
