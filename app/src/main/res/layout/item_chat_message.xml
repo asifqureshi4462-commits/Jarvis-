@@ -7,15 +7,75 @@
     android:paddingTop="4dp"
     android:paddingBottom="4dp">
 
-    <TextView
-        android:id="@+id/tvSender"
+    <!-- Sender Header with Dynamic Speaking Waveform Indicator -->
+    <LinearLayout
+        android:id="@+id/llHeaderRow"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="10sp"
-        android:fontFamily="monospace"
-        android:textColor="@color/jarvis_text_muted"
-        android:layout_marginBottom="2dp"
-        android:text="JARVIS" />
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="3dp">
+
+        <TextView
+            android:id="@+id/tvSender"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="10sp"
+            android:fontFamily="monospace"
+            android:textColor="@color/jarvis_text_muted"
+            android:text="JARVIS" />
+
+        <!-- Dynamic TTS Speaking Wave Indicator -->
+        <LinearLayout
+            android:id="@+id/llSpeakingIndicator"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginStart="8dp"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp"
+            android:background="@drawable/bg_pill_accent"
+            android:visibility="gone">
+
+            <!-- Equalizer Waveform Bars -->
+            <View
+                android:id="@+id/waveBar1"
+                android:layout_width="2dp"
+                android:layout_height="6dp"
+                android:layout_marginEnd="2dp"
+                android:background="@color/jarvis_accent" />
+            <View
+                android:id="@+id/waveBar2"
+                android:layout_width="2dp"
+                android:layout_height="12dp"
+                android:layout_marginEnd="2dp"
+                android:background="@color/jarvis_accent" />
+            <View
+                android:id="@+id/waveBar3"
+                android:layout_width="2dp"
+                android:layout_height="7dp"
+                android:layout_marginEnd="2dp"
+                android:background="@color/jarvis_accent" />
+            <View
+                android:id="@+id/waveBar4"
+                android:layout_width="2dp"
+                android:layout_height="11dp"
+                android:layout_marginEnd="4dp"
+                android:background="@color/jarvis_accent" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="SPEAKING"
+                android:textSize="8sp"
+                android:fontFamily="monospace"
+                android:textStyle="bold"
+                android:textColor="@color/jarvis_accent" />
+        </LinearLayout>
+    </LinearLayout>
 
     <TextView
         android:id="@+id/tvMessageBody"

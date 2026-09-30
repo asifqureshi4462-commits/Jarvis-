@@ -625,14 +625,54 @@ export default function App() {
     }
   };
 
-  // Voice synthesis wrapper with mobile resume and safety timers
-  const speakText = (text: string) => {
+  // Real JARVIS British Paul Bettany voice profile state
+  const [voicePitch, setVoicePitch] = useState<number>(0.92); // Paul Bettany baritone
+  const [voiceRate, setVoiceRate] = useState<number>(0.97); // Refined British AI cadence
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [selectedVoiceName, setSelectedVoiceName] = useState<string>('auto-jarvis');
+  const [detectedVoiceLabel, setDetectedVoiceLabel] = useState<string>('British AI Voice (Paul Bettany Mode)');
+  const [currentlySpeakingMsgId, setCurrentlySpeakingMsgId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    const updateVoices = () => {
+      const v = window.speechSynthesis.getVoices();
+      if (v && v.length > 0) {
+        setAvailableVoices(v);
+        const best = v.find((voice) =>
+          (voice.lang.toLowerCase().includes('en-gb') || voice.lang.toLowerCase().includes('en_gb')) &&
+          (voice.name.toLowerCase().includes('male') ||
+           voice.name.toLowerCase().includes('george') ||
+           voice.name.toLowerCase().includes('ryan') ||
+           voice.name.toLowerCase().includes('daniel') ||
+           voice.name.toLowerCase().includes('oliver') ||
+           voice.name.toLowerCase().includes('uk english male'))
+        ) || v.find((voice) => voice.lang.toLowerCase().includes('en-gb'))
+          || v.find((voice) => voice.name.toLowerCase().includes('daniel'))
+          || v.find((voice) => voice.lang.startsWith('en'));
+
+        if (best) {
+          setDetectedVoiceLabel(`${best.name} (${best.lang})`);
+        }
+      }
+    };
+
+    updateVoices();
+    window.speechSynthesis.onvoiceschanged = updateVoices;
+  }, []);
+
+  // Voice synthesis wrapper with authentic British Paul Bettany tuning & message tracking
+  const speakText = (text: string, msgId?: string) => {
     if (!ttsEnabled || typeof window === 'undefined') return;
     playJarvisChime('speak');
 
     if (!('speechSynthesis' in window)) {
       setJarvisState('SPEAKING');
-      setTimeout(() => setJarvisState('IDLE'), 2200);
+      if (msgId) setCurrentlySpeakingMsgId(msgId);
+      setTimeout(() => {
+        setJarvisState('IDLE');
+        setCurrentlySpeakingMsgId(null);
+      }, 2200);
       return;
     }
 
@@ -642,36 +682,79 @@ export default function App() {
       }
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.pitch = 0.95;
-      utterance.rate = 1.05;
+      utterance.pitch = voicePitch;
+      utterance.rate = voiceRate;
 
       const voices = window.speechSynthesis.getVoices();
-      const preferred = voices.find(
-        (v) =>
-          v.lang.startsWith('en') &&
-          (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Enhanced'))
-      );
-      if (preferred) {
-        utterance.voice = preferred;
+      let chosenVoice: SpeechSynthesisVoice | undefined;
+
+      if (selectedVoiceName !== 'auto-jarvis') {
+        chosenVoice = voices.find((v) => v.name === selectedVoiceName);
+      }
+
+      if (!chosenVoice) {
+        // Priority 1: British Male voices (Iconic Paul Bettany JARVIS profile)
+        chosenVoice = voices.find((v) =>
+          (v.lang.toLowerCase().includes('en-gb') || v.lang.toLowerCase().includes('en_gb')) &&
+          (v.name.toLowerCase().includes('male') ||
+           v.name.toLowerCase().includes('george') ||
+           v.name.toLowerCase().includes('ryan') ||
+           v.name.toLowerCase().includes('daniel') ||
+           v.name.toLowerCase().includes('oliver') ||
+           v.name.toLowerCase().includes('uk english male'))
+        );
+      }
+
+      if (!chosenVoice) {
+        // Priority 2: Any British English voice (en-GB)
+        chosenVoice = voices.find((v) =>
+          v.lang.toLowerCase().includes('en-gb') || v.lang.toLowerCase().includes('en_gb')
+        );
+      }
+
+      if (!chosenVoice) {
+        // Priority 3: Daniel / Natural English / Google UK
+        chosenVoice = voices.find((v) =>
+          v.name.toLowerCase().includes('daniel') ||
+          v.name.toLowerCase().includes('google uk') ||
+          (v.lang.startsWith('en') && (v.name.includes('Natural') || v.name.includes('Online')))
+        );
+      }
+
+      if (!chosenVoice) {
+        chosenVoice = voices.find((v) => v.lang.startsWith('en'));
+      }
+
+      if (chosenVoice) {
+        utterance.voice = chosenVoice;
+        setDetectedVoiceLabel(`${chosenVoice.name} (${chosenVoice.lang})`);
       }
 
       const safetyTimer = setTimeout(() => {
         setJarvisState('IDLE');
-      }, 7000);
+        setCurrentlySpeakingMsgId(null);
+      }, 9000);
 
-      utterance.onstart = () => setJarvisState('SPEAKING');
+      utterance.onstart = () => {
+        setJarvisState('SPEAKING');
+        if (msgId) setCurrentlySpeakingMsgId(msgId);
+      };
       utterance.onend = () => {
         clearTimeout(safetyTimer);
         setJarvisState('IDLE');
+        setCurrentlySpeakingMsgId(null);
       };
       utterance.onerror = () => {
         clearTimeout(safetyTimer);
         setJarvisState('IDLE');
+        setCurrentlySpeakingMsgId(null);
       };
 
+      if (msgId) setCurrentlySpeakingMsgId(msgId);
       window.speechSynthesis.speak(utterance);
     } catch {
       setJarvisState('IDLE');
+      setCurrentlySpeakingMsgId(null);
     }
   };
 
@@ -739,7 +822,7 @@ export default function App() {
   // Test speaker voice output
   const testSpeakerAudio = () => {
     playJarvisChime('success');
-    speakText('JARVIS audio systems are operational. Speech synthesis and hardware audio outputs are verified and online.');
+    speakText('At your service, sir. JARVIS British acoustic speech engine is verified and fully operational.');
   };
 
   // Deterministic Dispatcher Engine Simulation
@@ -881,7 +964,7 @@ export default function App() {
         };
         setMessages((prev) => [...prev, jarvisMsg]);
         setStatusMessage('Response ready.');
-        speakText(jarvisReply);
+        speakText(jarvisReply, jarvisMsg.id);
       }, 700);
     }, 600);
   };
@@ -1844,7 +1927,9 @@ export default function App() {
               {/* Chat Messages */}
               <div className="flex-1 p-5 overflow-y-auto space-y-4">
                 <AnimatePresence initial={false}>
-                  {messages.map((msg) => (
+                  {messages.map((msg) => {
+                    const isThisSpeaking = msg.sender === 'jarvis' && currentlySpeakingMsgId === msg.id && jarvisState === 'SPEAKING';
+                    return (
                     <motion.div
                       key={msg.id}
                       initial={{ opacity: 0, y: 12, scale: 0.98 }}
@@ -1852,13 +1937,59 @@ export default function App() {
                       transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
                       className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
                     >
-                      <div className="text-[11px] text-[var(--jarvis-text-muted)] mb-1 font-mono">
-                        {msg.sender === 'user' ? 'USER' : 'JARVIS'} · {msg.timestamp}
+                      <div className="flex items-center gap-2 text-[11px] text-[var(--jarvis-text-muted)] mb-1 font-mono">
+                        <span>{msg.sender === 'user' ? 'USER' : 'JARVIS'} · {msg.timestamp}</span>
+
+                        {/* Dynamic Visual Feedback: Speaking Wave Animation */}
+                        {isThisSpeaking && (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.85 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.85 }}
+                            className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[var(--jarvis-accent-dim)] border border-[var(--jarvis-accent)]/40 text-[var(--jarvis-accent)] shadow-[0_0_8px_var(--jarvis-accent-glow)]"
+                          >
+                            {/* Animated Equalizer Waveform Bars */}
+                            <span className="flex items-center gap-0.5 h-3.5 px-0.5">
+                              {[0.4, 0.9, 1.3, 0.75, 0.35].map((scaleFactor, idx) => (
+                                <motion.span
+                                  key={idx}
+                                  animate={{ height: ['4px', `${Math.round(14 * scaleFactor)}px`, '3px'] }}
+                                  transition={{
+                                    repeat: Infinity,
+                                    duration: 0.45 + idx * 0.08,
+                                    ease: 'easeInOut',
+                                    repeatType: 'mirror',
+                                    delay: idx * 0.06,
+                                  }}
+                                  className="w-0.5 bg-[var(--jarvis-accent)] rounded-full shadow-[0_0_4px_var(--jarvis-accent)]"
+                                />
+                              ))}
+                            </span>
+                            <span className="text-[10px] font-bold tracking-wider animate-pulse">SPEAKING</span>
+                          </motion.div>
+                        )}
+
+                        {/* Speaker Action Button for JARVIS responses */}
+                        {msg.sender === 'jarvis' && (
+                          <button
+                            onClick={() => speakText(msg.text, msg.id)}
+                            title="Read aloud with JARVIS voice"
+                            className={`p-1 rounded transition-colors ${
+                              isThisSpeaking
+                                ? 'text-[var(--jarvis-accent)] bg-[var(--jarvis-accent-dim)]'
+                                : 'text-[var(--jarvis-text-muted)] hover:text-[var(--jarvis-accent)] hover:bg-[var(--jarvis-bg)]'
+                            }`}
+                          >
+                            <Volume2 className={`w-3.5 h-3.5 ${isThisSpeaking ? 'animate-pulse text-[var(--jarvis-accent)]' : ''}`} />
+                          </button>
+                        )}
                       </div>
                       <div
-                        className={`max-w-[85%] rounded-xl px-4 py-3 text-sm leading-relaxed ${
+                        className={`max-w-[85%] rounded-xl px-4 py-3 text-sm leading-relaxed transition-all duration-300 relative ${
                           msg.sender === 'user'
                             ? 'bg-[var(--jarvis-accent-dim)] text-[var(--jarvis-text)] border border-[var(--jarvis-accent)]/30'
+                            : isThisSpeaking
+                            ? 'bg-[var(--jarvis-surface-elevated)] text-[var(--jarvis-subtext)] border border-[var(--jarvis-accent)] shadow-[0_0_18px_var(--jarvis-accent-glow)]'
                             : 'bg-[var(--jarvis-surface-elevated)] text-[var(--jarvis-subtext)] border border-[var(--jarvis-border-bright)]'
                         }`}
                       >
@@ -1883,7 +2014,8 @@ export default function App() {
                         )}
                       </div>
                     </motion.div>
-                  ))}
+                  );
+                })}
                 </AnimatePresence>
                 <div ref={messagesEndRef} />
               </div>
@@ -2843,6 +2975,113 @@ jobs:
                       Plays high-tech audio chime and speaks test phrase out loud.
                     </span>
                   </motion.button>
+                </div>
+
+                {/* JARVIS Real Voice (Paul Bettany Profile) Engine Controls */}
+                <div className="p-4 rounded-xl bg-[var(--jarvis-bg)] border border-[var(--jarvis-border)] space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-[var(--jarvis-text)] flex items-center gap-1.5">
+                      <Radio className="w-3.5 h-3.5 text-[var(--jarvis-accent)] animate-pulse" />
+                      JARVIS Real Voice (Paul Bettany Profile)
+                    </span>
+                    <span className="text-[10px] text-[var(--jarvis-accent)] font-mono bg-[var(--jarvis-accent-dim)] px-2 py-0.5 rounded border border-[var(--jarvis-accent)]/30">
+                      BRITISH RP AI
+                    </span>
+                  </div>
+
+                  <div className="p-2.5 rounded-lg bg-[var(--jarvis-surface-elevated)] border border-[var(--jarvis-border-bright)] flex items-center justify-between text-[11px]">
+                    <span className="text-[var(--jarvis-text-muted)]">Active Voice Engine:</span>
+                    <span className="font-mono text-emerald-400 font-semibold truncate max-w-[260px]">
+                      {detectedVoiceLabel}
+                    </span>
+                  </div>
+
+                  {/* Pitch & Cadence Sliders */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div>
+                      <div className="flex justify-between text-[11px] text-[var(--jarvis-text-muted)] mb-1">
+                        <span>Vocal Pitch (Baritone)</span>
+                        <span className="font-mono text-[var(--jarvis-accent)]">{voicePitch.toFixed(2)}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.75"
+                        max="1.15"
+                        step="0.01"
+                        value={voicePitch}
+                        onChange={(e) => setVoicePitch(parseFloat(e.target.value))}
+                        className="w-full accent-[var(--jarvis-accent)] h-1.5 bg-[var(--jarvis-surface)] rounded-lg cursor-pointer"
+                      />
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-[11px] text-[var(--jarvis-text-muted)] mb-1">
+                        <span>Speech Rate (Cadence)</span>
+                        <span className="font-mono text-[var(--jarvis-accent)]">{voiceRate.toFixed(2)}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.80"
+                        max="1.20"
+                        step="0.01"
+                        value={voiceRate}
+                        onChange={(e) => setVoiceRate(parseFloat(e.target.value))}
+                        className="w-full accent-[var(--jarvis-accent)] h-1.5 bg-[var(--jarvis-surface)] rounded-lg cursor-pointer"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Reset to Paul Bettany Preset */}
+                  <div className="flex items-center justify-between pt-1">
+                    <button
+                      onClick={() => {
+                        setVoicePitch(0.92);
+                        setVoiceRate(0.97);
+                        setSelectedVoiceName('auto-jarvis');
+                        playJarvisChime('success');
+                      }}
+                      className="text-[10px] text-[var(--jarvis-accent)] hover:underline flex items-center gap-1"
+                    >
+                      <span>Reset to Paul Bettany JARVIS (0.92 / 0.97)</span>
+                    </button>
+                    {availableVoices.length > 0 && (
+                      <select
+                        value={selectedVoiceName}
+                        onChange={(e) => setSelectedVoiceName(e.target.value)}
+                        className="bg-[var(--jarvis-surface)] text-[11px] text-[var(--jarvis-text-muted)] border border-[var(--jarvis-border)] rounded px-2 py-0.5 max-w-[190px] truncate"
+                      >
+                        <option value="auto-jarvis">Auto-Select British Voice</option>
+                        {availableVoices.map((v) => (
+                          <option key={v.name} value={v.name}>
+                            {v.name} ({v.lang})
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+
+                  {/* Classic Movie Quote Triggers */}
+                  <div className="pt-2 border-t border-[var(--jarvis-border)]">
+                    <span className="text-[11px] text-[var(--jarvis-text-muted)] block mb-1.5 font-medium">
+                      Test Classic JARVIS Quotes (Spoken Aloud):
+                    </span>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { text: 'At your service, sir. All core diagnostics nominal.', label: 'At your service, sir' },
+                        { text: 'Importing preferences. Power grid at 100 percent. The Mark VII is prepped and ready.', label: 'Power Grid 100%' },
+                        { text: 'Sir, I have analyzed the telemetry. All sub-systems are operating at peak efficiency.', label: 'Telemetry Analysis' },
+                        { text: 'Good evening, sir. Running security protocols on local environment.', label: 'Good Evening, Sir' },
+                      ].map((q) => (
+                        <button
+                          key={q.label}
+                          onClick={() => speakText(q.text)}
+                          className="px-2.5 py-1.5 rounded-lg bg-[var(--jarvis-surface-elevated)] border border-[var(--jarvis-border)] hover:border-[var(--jarvis-accent)]/50 text-left text-[11px] text-[var(--jarvis-text)] hover:text-[var(--jarvis-accent)] flex items-center justify-between transition-all"
+                        >
+                          <span className="truncate">{q.label}</span>
+                          <Play className="w-2.5 h-2.5 shrink-0 ml-1 text-[var(--jarvis-accent)] fill-current" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Instant Voice Commands (100% Reliable without Mic Permission) */}

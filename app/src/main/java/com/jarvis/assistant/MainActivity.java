@@ -238,18 +238,78 @@ public class MainActivity extends AppCompatActivity {
         try {
             textToSpeech = new TextToSpeech(this, status -> {
                 if (status == TextToSpeech.SUCCESS) {
-                    int result = textToSpeech.setLanguage(Locale.US);
-                    if (result != TextToSpeech.LANG_MISSING_DATA && result != TextToSpeech.LANG_NOT_SUPPORTED) {
-                        textToSpeech.setPitch(0.95f);
-                        textToSpeech.setSpeechRate(1.0f);
-                        isTtsReady = true;
-                        Log.i(TAG, "TextToSpeech initialized successfully.");
+                    // Try UK English first for authentic British JARVIS accent
+                    int result = textToSpeech.setLanguage(Locale.UK);
+                    if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                        result = textToSpeech.setLanguage(Locale.ENGLISH);
                     }
+
+                    // Search for British Male voice (Paul Bettany style)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        try {
+                            java.util.Set<android.speech.tts.Voice> voices = textToSpeech.getVoices();
+                            if (voices != null) {
+                                for (android.speech.tts.Voice v : voices) {
+                                    String name = v.getName().toLowerCase(Locale.US);
+                                    boolean isGb = (v.getLocale() != null &&
+                                            ("GB".equalsIgnoreCase(v.getLocale().getCountry()) || name.contains("gb") || name.contains("en-gb")));
+                                    boolean isMale = name.contains("male") || name.contains("rjs") || name.contains("gba") || !name.contains("female");
+                                    if (isGb && isMale) {
+                                        textToSpeech.setVoice(v);
+                                        Log.i(TAG, "Selected British JARVIS voice profile: " + v.getName());
+                                        break;
+                                    }
+                                }
+                            }
+                        } catch (Exception ignored) {}
+                    }
+
+                    // Iconic Paul Bettany JARVIS acoustic tuning:
+                    // 0.92f = calm, intelligent, slightly low-register British baritone
+                    // 0.98f = composed, deliberate, sophisticated pace
+                    textToSpeech.setPitch(0.92f);
+                    textToSpeech.setSpeechRate(0.98f);
+
+                    // Dynamic Visual Feedback: Link TTS Speech Playback with Chat Window Wave Indicator
+                    textToSpeech.setOnUtteranceProgressListener(new android.speech.tts.UtteranceProgressListener() {
+                        @Override
+                        public void onStart(String utteranceId) {
+                            runOnUiThread(() -> {
+                                if (utteranceId != null && utteranceId.startsWith("JARVIS_MSG_")) {
+                                    try {
+                                        int pos = Integer.parseInt(utteranceId.replace("JARVIS_MSG_", ""));
+                                        chatAdapter.setSpeakingAt(pos, true);
+                                    } catch (Exception ignored) {}
+                                }
+                            });
+                        }
+
+                        @Override
+                        public void onDone(String utteranceId) {
+                            runOnUiThread(() -> chatAdapter.clearAllSpeaking());
+                        }
+
+                        @Override
+                        public void onError(String utteranceId) {
+                            runOnUiThread(() -> chatAdapter.clearAllSpeaking());
+                        }
+                    });
+
+                    isTtsReady = true;
+                    Log.i(TAG, "TextToSpeech initialized with Real British JARVIS voice.");
                 }
             });
         } catch (Exception e) {
             Log.e(TAG, "TTS Initialization warning: " + e.getMessage());
         }
+    }
+
+    private void playJarvisBeep() {
+        try {
+            android.media.ToneGenerator toneGen = new android.media.ToneGenerator(android.media.AudioManager.STREAM_MUSIC, 35);
+            toneGen.startTone(android.media.ToneGenerator.TONE_PROP_BEEP, 80);
+            new Handler(Looper.getMainLooper()).postDelayed(toneGen::release, 250);
+        } catch (Exception ignored) {}
     }
 
     private void setupClickListeners() {
@@ -603,13 +663,17 @@ public class MainActivity extends AppCompatActivity {
 
     private void postJarvisResponse(String message) {
         String time = new SimpleDateFormat("HH:mm", Locale.US).format(new Date());
-        chatAdapter.addMessage(new ChatMessage("JARVIS", message, time, false));
-        rvMessages.smoothScrollToPosition(chatAdapter.getItemCount() - 1);
+        ChatMessage chatMsg = new ChatMessage("JARVIS", message, time, false);
+        chatAdapter.addMessage(chatMsg);
+        int targetPosition = chatAdapter.getLastMessageIndex();
+        rvMessages.smoothScrollToPosition(targetPosition);
 
-        // Speak aloud safely
+        // Speak aloud safely with real JARVIS acoustic chime and dynamic speaking wave indicator
         if (isTtsReady && textToSpeech != null) {
             try {
-                textToSpeech.speak(message, TextToSpeech.QUEUE_FLUSH, null, "JARVIS_RESPONSE_" + System.currentTimeMillis());
+                playJarvisBeep();
+                String utteranceId = "JARVIS_MSG_" + targetPosition;
+                textToSpeech.speak(message, TextToSpeech.QUEUE_FLUSH, null, utteranceId);
             } catch (Exception e) {
                 Log.w(TAG, "TTS speak warning: " + e.getMessage());
             }
