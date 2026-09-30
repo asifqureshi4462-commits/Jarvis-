@@ -29,33 +29,31 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-          cache: 'gradle'
 
-      # Step 3: Accept Android Licenses (Ubuntu runner par SDK pehle se mojood hota hai)
+      # Step 3: Modern Gradle 8.4 Setup (No outdated apt-get gradle)
+      - name: Setup Gradle 8.4
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.4'
+
+      # Step 4: Accept Android SDK Licenses
       - name: Accept Android SDK Licenses
         run: |
           yes | sdkmanager --licenses || true
 
-      # Step 4: Make gradlew executable
-      - name: Prepare Gradle Wrapper
-        run: |
-          if [ -f "./gradlew" ]; then
-            chmod +x gradlew
-          elif [ -f "Jarvis--main/gradlew" ]; then
-            chmod +x Jarvis--main/gradlew
-          else
-            echo "Generating Gradle wrapper..."
-            sudo apt-get update -qq && sudo apt-get install -y -qq gradle
-            gradle wrapper --gradle-version 8.4
-            chmod +x gradlew
-          fi
-
       # Step 5: Build Debug APK
-      - name: Build Debug APK with Gradle
+      - name: Build Debug APK
         run: |
-          if [ ! -f "./gradlew" ] && [ -d "Jarvis--main" ]; then
+          # Agar files kisi subfolder mein hon (e.g. Jarvis--main)
+          if [ ! -f "settings.gradle" ] && [ -d "Jarvis--main" ]; then
             cd Jarvis--main
           fi
+
+          # Wrapper ensure karein modern Gradle 8.4 ke saath
+          gradle wrapper --gradle-version 8.4
+          chmod +x gradlew
+
+          # APK Assemble karein
           ./gradlew assembleDebug --stacktrace --no-daemon
 
       # Step 6: Upload APK Artifact
@@ -64,7 +62,6 @@ jobs:
         with:
           name: jarvis-debug-apk
           path: |
-            app/build/outputs/apk/debug/*.apk
-            Jarvis--main/app/build/outputs/apk/debug/*.apk
+            **/build/outputs/apk/debug/*.apk
           retention-days: 14
           if-no-files-found: error
