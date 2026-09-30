@@ -1,0 +1,6 @@
+{
+  "name": "JARVIS - Personal AI Assistant Blueprint & HUD",
+  "description": "Architectural command console, interactive HUD simulator, and full technical blueprint for JARVIS Android Assistant.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
