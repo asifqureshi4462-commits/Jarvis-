@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/llMessageContainer"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingTop="4dp"
+    android:paddingBottom="4dp">
+
+    <TextView
+        android:id="@+id/tvSender"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="10sp"
+        android:fontFamily="monospace"
+        android:textColor="@color/jarvis_text_muted"
+        android:layout_marginBottom="2dp"
+        android:text="JARVIS" />
+
+    <TextView
+        android:id="@+id/tvMessageBody"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="13sp"
+        android:lineSpacingExtra="3dp"
+        android:padding="12dp"
+        android:background="@drawable/bg_chat_jarvis"
+        android:textColor="@color/jarvis_text_primary"
+        android:maxWidth="300dp"
+        android:text="System Initialized." />
+</LinearLayout>

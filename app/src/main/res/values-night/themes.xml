@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Jarvis" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/jarvis_accent</item>
+        <item name="colorPrimaryVariant">@color/jarvis_surface_elevated</item>
+        <item name="colorOnPrimary">@color/jarvis_bg</item>
+        <item name="colorSecondary">@color/jarvis_gold</item>
+        <item name="android:windowBackground">@color/jarvis_bg</item>
+        <item name="colorSurface">@color/jarvis_surface</item>
+        <item name="colorOnSurface">@color/jarvis_text_primary</item>
+        <item name="android:statusBarColor">@color/jarvis_bg</item>
+        <item name="android:navigationBarColor">@color/jarvis_bg</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

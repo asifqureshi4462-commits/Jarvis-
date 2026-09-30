@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">JARVIS</string>
+    <string name="app_tagline">Autonomous AI System</string>
+    <string name="status_system_ready">System Online · All Nodes Operational</string>
+    <string name="status_listening">Listening for command...</string>
+    <string name="status_processing">Processing directive...</string>
+    <string name="command_hint">Enter command or tap microphone...</string>
+    <string name="btn_send">Send</string>
+    <string name="btn_mic">Mic</string>
+    <string name="permission_mic_rationale">JARVIS requires audio recording permission to process spoken commands.</string>
+</resources>
