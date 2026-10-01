@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_gradient"
+    android:fillViewport="true"
+    android:fitsSystemWindows="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:letterSpacing="0.15"
+            android:text="SETTINGS"
+            android:textColor="@color/cyan"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <TextView
+            style="@style/Jarvis.Label"
+            android:text="GEMINI API KEY" />
+
+        <EditText
+            android:id="@+id/apiKeyInput"
+            style="@style/Jarvis.Field"
+            android:hint="Paste your key here"
+            android:importantForAutofill="no"
+            android:inputType="textPassword"
+            android:singleLine="true" />
+
+        <TextView
+            android:id="@+id/apiStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textColor="@color/gold"
+            android:textSize="12sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:autoLink="web"
+            android:linksClickable="true"
+            android:text="Get a free key: https://aistudio.google.com/apikey"
+            android:textColorLink="@color/blue"
+            android:textColor="@color/muted"
+            android:textSize="12sp" />
+
+        <TextView
+            style="@style/Jarvis.Label"
+            android:text="MODEL" />
+
+        <EditText
+            android:id="@+id/modelInput"
+            style="@style/Jarvis.Field"
+            android:hint="gemini-2.5-flash"
+            android:importantForAutofill="no"
+            android:inputType="text"
+            android:singleLine="true" />
+
+        <TextView
+            style="@style/Jarvis.Label"
+            android:text="WHAT SHOULD JARVIS CALL YOU?" />
+
+        <EditText
+            android:id="@+id/titleInput"
+            style="@style/Jarvis.Field"
+            android:hint="Sir"
+            android:importantForAutofill="no"
+            android:inputType="textCapWords"
+            android:singleLine="true" />
+
+        <TextView
+            style="@style/Jarvis.Label"
+            android:text="HOME CITY (used for weather when you do not name a city)" />
+
+        <EditText
+            android:id="@+id/cityInput"
+            style="@style/Jarvis.Field"
+            android:hint="e.g. Delhi"
+            android:importantForAutofill="no"
+            android:inputType="textCapWords"
+            android:singleLine="true" />
+
+        <TextView
+            style="@style/Jarvis.Label"
+            android:text="VOICE INPUT LANGUAGE" />
+
+        <Spinner
+            android:id="@+id/langSpinner"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/bg_input"
+            android:paddingStart="8dp" />
+
+        <TextView
+            android:id="@+id/rateLabel"
+            style="@style/Jarvis.Label"
+            android:text="SPEECH SPEED" />
+
+        <SeekBar
+            android:id="@+id/rateSeek"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:max="15" />
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/speakSwitch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:minHeight="48dp"
+            android:text="Speak every reply aloud (voice questions are always spoken)"
+            android:textColor="@color/text" />
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/groundSwitch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:text="Use Google Search for current information"
+            android:textColor="@color/text" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSave"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="Save" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnTest"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Save &amp; test connection" />
+
+        <TextView
+            android:id="@+id/testResult"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:accessibilityLiveRegion="polite"
+            android:textColor="@color/text"
+            android:textSize="13sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnRemoveKey"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Remove saved API key"
+            android:textColor="#FF5252" />
+
+        <TextView
+            style="@style/Jarvis.Label"
+            android:text="ABOUT" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="JARVIS v1.0.0\nYour API key is stored encrypted on this device and is only sent to Google's Gemini API. Notes, facts and chat history stay on this phone."
+            android:textColor="@color/muted"
+            android:textSize="13sp" />
+    </LinearLayout>
+</ScrollView>
