@@ -1,0 +1,522 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Core Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isVerified() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function parentUserExists(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId));
+    }
+
+    // Existing Validation Blueprints
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll(['uid', 'email', 'displayName', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'email', 'displayName', 'createdAt', 'updatedAt'])
+        && data.uid is string && data.uid == userId && isValidId(data.uid)
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 256
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 120
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidMemory(data, userId) {
+      return data.keys().hasAll(['userId', 'content', 'category', 'importance', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['userId', 'content', 'category', 'importance', 'createdAt', 'updatedAt'])
+        && data.userId is string && data.userId == userId && isValidId(data.userId)
+        && data.content is string && data.content.size() >= 1 && data.content.size() <= 2000
+        && data.category is string && data.category in ['preference', 'fact', 'project', 'contact', 'routine']
+        && data.importance is string && data.importance in ['low', 'medium', 'high']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidTask(data, userId) {
+      return data.keys().hasAll(['userId', 'title', 'completed', 'priority', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['userId', 'title', 'completed', 'dueDate', 'priority', 'reminderAt', 'createdAt', 'updatedAt'])
+        && data.userId is string && data.userId == userId && isValidId(data.userId)
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 300
+        && data.completed is bool
+        && data.priority is string && data.priority in ['low', 'medium', 'high']
+        && (!('dueDate' in data) || (data.dueDate is string && data.dueDate.size() <= 32))
+        && (!('reminderAt' in data) || (data.reminderAt is string && data.reminderAt.size() <= 64))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidMessage(data, userId) {
+      return data.keys().hasAll(['userId', 'role', 'text', 'createdAt'])
+        && data.keys().hasOnly(['userId', 'role', 'text', 'language', 'modelUsed', 'createdAt'])
+        && data.userId is string && data.userId == userId && isValidId(data.userId)
+        && data.role is string && data.role in ['user', 'assistant']
+        && data.text is string && data.text.size() >= 1 && data.text.size() <= 12000
+        && (!('language' in data) || (data.language is string && data.language.size() <= 32))
+        && (!('modelUsed' in data) || (data.modelUsed is string && data.modelUsed.size() <= 64))
+        && data.createdAt is timestamp;
+    }
+
+    function isValidNote(data, userId) {
+      return data.keys().hasAll(['userId', 'title', 'content', 'pinned', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['userId', 'title', 'content', 'pinned', 'createdAt', 'updatedAt'])
+        && data.userId is string && data.userId == userId && isValidId(data.userId)
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 200
+        && data.content is string && data.content.size() >= 1 && data.content.size() <= 6000
+        && data.pinned is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidSettings(data, userId) {
+      return data.keys().hasAll(['userId', 'assistantName', 'addressTitle', 'voiceEngine', 'updatedAt'])
+        && data.keys().hasOnly([
+          'userId', 'assistantName', 'addressTitle', 'personalityTone', 'languages',
+          'customDirectives', 'voiceEngine', 'geminiVoiceName', 'elevenLabsVoiceId',
+          'stability', 'similarity', 'speed', 'autoSpeak', 'wakeWordEnabled',
+          'themeMode', 'modelMode', 'showLatencyTelemetry', 'keepScreenAwake', 'updatedAt'
+        ])
+        && data.userId is string && data.userId == userId && isValidId(data.userId)
+        && data.assistantName is string && data.assistantName.size() >= 1 && data.assistantName.size() <= 64
+        && data.addressTitle is string && data.addressTitle.size() >= 1 && data.addressTitle.size() <= 40
+        && (!('personalityTone' in data) || (data.personalityTone is string && data.personalityTone.size() <= 600))
+        && (!('languages' in data) || (data.languages is list && data.languages.size() >= 1 && data.languages.size() <= 3 && data.languages.hasOnly(['English', 'Hindi', 'Urdu'])))
+        && (!('customDirectives' in data) || (data.customDirectives is string && data.customDirectives.size() <= 2000))
+        && data.voiceEngine is string && data.voiceEngine in ['gemini', 'elevenlabs']
+        && (!('geminiVoiceName' in data) || (data.geminiVoiceName is string && data.geminiVoiceName.size() <= 32))
+        && (!('elevenLabsVoiceId' in data) || (data.elevenLabsVoiceId is string && data.elevenLabsVoiceId.size() <= 128))
+        && (!('stability' in data) || (data.stability is number && data.stability >= 0 && data.stability <= 1))
+        && (!('similarity' in data) || (data.similarity is number && data.similarity >= 0 && data.similarity <= 1))
+        && (!('speed' in data) || (data.speed is number && data.speed >= 0.5 && data.speed <= 2.0))
+        && (!('autoSpeak' in data) || data.autoSpeak is bool)
+        && (!('wakeWordEnabled' in data) || data.wakeWordEnabled is bool)
+        && (!('themeMode' in data) || (data.themeMode is string && data.themeMode in ['dark', 'light', 'system']))
+        && (!('modelMode' in data) || (data.modelMode is string && data.modelMode in ['fast', 'balanced', 'deep']))
+        && (!('showLatencyTelemetry' in data) || data.showLatencyTelemetry is bool)
+        && (!('keepScreenAwake' in data) || data.keepScreenAwake is bool)
+        && data.updatedAt is timestamp;
+    }
+
+    // Creator Studio Validation Blueprints
+    function isValidCreatorConnection(data, userId, platformId) {
+      return data.keys().hasAll(['userId', 'platform', 'connected', 'accountName', 'updatedAt'])
+        && data.keys().hasOnly([
+          'userId', 'platform', 'connected', 'accountName', 'handle',
+          'channelId', 'avatarUrl', 'followersCount', 'notes', 'updatedAt'
+        ])
+        && data.userId is string && data.userId == userId && isValidId(data.userId)
+        && data.platform is string && data.platform == platformId
+        && data.platform in ['youtube', 'instagram', 'facebook', 'telegram', 'x', 'linkedin']
+        && data.connected is bool
+        && data.accountName is string && data.accountName.size() >= 1 && data.accountName.size() <= 160
+        && (!('handle' in data) || (data.handle is string && data.handle.size() <= 160))
+        && (!('channelId' in data) || (data.channelId is string && data.channelId.size() <= 160))
+        && (!('avatarUrl' in data) || (data.avatarUrl is string && data.avatarUrl.size() <= 600))
+        && (!('followersCount' in data) || (data.followersCount is number && data.followersCount >= 0))
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 600))
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCreatorSnapshot(data, userId) {
+      return data.keys().hasAll(['userId', 'platform', 'dateRange', 'summaryJson', 'createdAt'])
+        && data.keys().hasOnly([
+          'userId', 'platform', 'dateRange', 'summaryJson',
+          'views', 'subscribers', 'watchTimeMinutes', 'createdAt'
+        ])
+        && data.userId is string && data.userId == userId && isValidId(data.userId)
+        && data.platform is string && data.platform in ['youtube', 'instagram', 'facebook']
+        && data.dateRange is string && data.dateRange.size() >= 1 && data.dateRange.size() <= 64
+        && data.summaryJson is string && data.summaryJson.size() >= 2 && data.summaryJson.size() <= 12000
+        && (!('views' in data) || (data.views is number && data.views >= 0))
+        && (!('subscribers' in data) || (data.subscribers is number && data.subscribers >= 0))
+        && (!('watchTimeMinutes' in data) || (data.watchTimeMinutes is number && data.watchTimeMinutes >= 0))
+        && data.createdAt is timestamp;
+    }
+
+    function isValidCreatorIdea(data, userId) {
+      return data.keys().hasAll(['userId', 'topic', 'suggestedFormat', 'confidence', 'status', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly([
+          'userId', 'topic', 'targetAudience', 'suggestedFormat', 'suggestedLength',
+          'hook', 'contentAngle', 'researchSources', 'reason', 'confidence',
+          'status', 'createdAt', 'updatedAt'
+        ])
+        && data.userId is string && data.userId == userId && isValidId(data.userId)
+        && data.topic is string && data.topic.size() >= 1 && data.topic.size() <= 300
+        && (!('targetAudience' in data) || (data.targetAudience is string && data.targetAudience.size() <= 240))
+        && data.suggestedFormat is string && data.suggestedFormat.size() >= 1 && data.suggestedFormat.size() <= 80
+        && (!('suggestedLength' in data) || (data.suggestedLength is string && data.suggestedLength.size() <= 80))
+        && (!('hook' in data) || (data.hook is string && data.hook.size() <= 600))
+        && (!('contentAngle' in data) || (data.contentAngle is string && data.contentAngle.size() <= 1200))
+        && (!('researchSources' in data) || (data.researchSources is list && data.researchSources.size() <= 10 && (data.researchSources.size() == 0 || data.researchSources[0] is string)))
+        && (!('reason' in data) || (data.reason is string && data.reason.size() <= 1200))
+        && data.confidence is string && data.confidence in ['low', 'medium', 'high']
+        && data.status is string && data.status in ['saved', 'scripted', 'produced', 'archived']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCreatorScript(data, userId) {
+      return data.keys().hasAll(['userId', 'title', 'format', 'body', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly([
+          'userId', 'title', 'format', 'platform', 'durationTarget', 'hook',
+          'body', 'scenesJson', 'seoJson', 'aiProvider', 'createdAt', 'updatedAt'
+        ])
+        && data.userId is string && data.userId == userId && isValidId(data.userId)
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 300
+        && data.format is string && data.format in ['short', 'long']
+        && (!('platform' in data) || (data.platform is string && data.platform.size() <= 40))
+        && (!('durationTarget' in data) || (data.durationTarget is string && data.durationTarget.size() <= 40))
+        && (!('hook' in data) || (data.hook is string && data.hook.size() <= 1000))
+        && data.body is string && data.body.size() >= 1 && data.body.size() <= 24000
+        && (!('scenesJson' in data) || (data.scenesJson is string && data.scenesJson.size() <= 24000))
+        && (!('seoJson' in data) || (data.seoJson is string && data.seoJson.size() <= 8000))
+        && (!('aiProvider' in data) || (data.aiProvider is string && data.aiProvider.size() <= 32))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCreatorProject(data, userId) {
+      return data.keys().hasAll(['userId', 'title', 'aspectRatio', 'status', 'currentStep', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly([
+          'userId', 'title', 'aspectRatio', 'status', 'currentStep', 'videoProvider',
+          'voiceEngine', 'pipelineJson', 'finalVideoPath', 'captionsPath',
+          'qualityReportJson', 'createdAt', 'updatedAt'
+        ])
+        && data.userId is string && data.userId == userId && isValidId(data.userId)
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 300
+        && data.aspectRatio is string && data.aspectRatio in ['9:16', '16:9']
+        && data.status is string && data.status in ['draft', 'assets_ready', 'voiced', 'rendered', 'verified', 'published']
+        && data.currentStep is number && data.currentStep >= 1 && data.currentStep <= 12
+        && (!('videoProvider' in data) || (data.videoProvider is string && data.videoProvider.size() <= 40))
+        && (!('voiceEngine' in data) || (data.voiceEngine is string && data.voiceEngine.size() <= 32))
+        && (!('pipelineJson' in data) || (data.pipelineJson is string && data.pipelineJson.size() <= 32000))
+        && (!('finalVideoPath' in data) || (data.finalVideoPath is string && data.finalVideoPath.size() <= 400))
+        && (!('captionsPath' in data) || (data.captionsPath is string && data.captionsPath.size() <= 400))
+        && (!('qualityReportJson' in data) || (data.qualityReportJson is string && data.qualityReportJson.size() <= 4000))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCreatorCalendarEntry(data, userId) {
+      return data.keys().hasAll(['userId', 'title', 'platform', 'format', 'scheduledDate', 'status', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly([
+          'userId', 'title', 'platform', 'format', 'scheduledDate',
+          'status', 'notes', 'createdAt', 'updatedAt'
+        ])
+        && data.userId is string && data.userId == userId && isValidId(data.userId)
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 300
+        && data.platform is string && data.platform.size() >= 1 && data.platform.size() <= 32
+        && data.format is string && data.format in ['short', 'long', 'post']
+        && data.scheduledDate is string && data.scheduledDate.size() >= 1 && data.scheduledDate.size() <= 32
+        && data.status is string && data.status in ['planned', 'in_production', 'scheduled', 'published']
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 1200))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCreatorPost(data, userId) {
+      return data.keys().hasAll(['userId', 'platform', 'title', 'status', 'createdAt'])
+        && data.keys().hasOnly([
+          'userId', 'platform', 'title', 'caption', 'status',
+          'externalPostId', 'externalUrl', 'errorMessage', 'createdAt'
+        ])
+        && data.userId is string && data.userId == userId && isValidId(data.userId)
+        && data.platform is string && data.platform.size() >= 1 && data.platform.size() <= 32
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 300
+        && (!('caption' in data) || (data.caption is string && data.caption.size() <= 5000))
+        && data.status is string && data.status in ['scheduled', 'published', 'failed']
+        && (!('externalPostId' in data) || (data.externalPostId is string && data.externalPostId.size() <= 240))
+        && (!('externalUrl' in data) || (data.externalUrl is string && data.externalUrl.size() <= 600))
+        && (!('errorMessage' in data) || (data.errorMessage is string && data.errorMessage.size() <= 1000))
+        && data.createdAt is timestamp;
+    }
+
+    function isValidCreatorReport(data, userId) {
+      return data.keys().hasAll(['userId', 'title', 'reportType', 'summary', 'createdAt'])
+        && data.keys().hasOnly(['userId', 'title', 'reportType', 'summary', 'createdAt'])
+        && data.userId is string && data.userId == userId && isValidId(data.userId)
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 300
+        && data.reportType is string && data.reportType in ['performance', 'competitor']
+        && data.summary is string && data.summary.size() >= 1 && data.summary.size() <= 16000
+        && data.createdAt is timestamp;
+    }
+
+    // User Root Profile (PII isolated to owner)
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow list: if false;
+      allow create: if isValidId(userId) && isOwner(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(userId) && isOwner(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['email', 'displayName', 'updatedAt']);
+      allow delete: if false;
+
+      // Memories Subcollection
+      match /memories/{memoryId} {
+        allow get: if isValidId(userId) && isValidId(memoryId) && isOwner(userId);
+        allow list: if isOwner(userId) && resource.data.userId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(memoryId) && isOwner(userId)
+          && parentUserExists(userId)
+          && isValidMemory(incoming(), userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+        allow update: if isValidId(userId) && isValidId(memoryId) && isOwner(userId)
+          && parentUserExists(userId)
+          && isValidMemory(incoming(), userId)
+          && incoming().userId == existing().userId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['content', 'category', 'importance', 'updatedAt']);
+        allow delete: if isValidId(userId) && isValidId(memoryId) && isOwner(userId);
+      }
+
+      // Tasks Subcollection
+      match /tasks/{taskId} {
+        allow get: if isValidId(userId) && isValidId(taskId) && isOwner(userId);
+        allow list: if isOwner(userId) && resource.data.userId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(taskId) && isOwner(userId)
+          && parentUserExists(userId)
+          && isValidTask(incoming(), userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+        allow update: if isValidId(userId) && isValidId(taskId) && isOwner(userId)
+          && parentUserExists(userId)
+          && isValidTask(incoming(), userId)
+          && incoming().userId == existing().userId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && (
+            incoming().diff(existing()).affectedKeys().hasOnly(['completed', 'updatedAt']) ||
+            incoming().diff(existing()).affectedKeys().hasOnly(['title', 'completed', 'dueDate', 'priority', 'reminderAt', 'updatedAt'])
+          );
+        allow delete: if isValidId(userId) && isValidId(taskId) && isOwner(userId);
+      }
+
+      // Messages Subcollection
+      match /messages/{messageId} {
+        allow get: if isValidId(userId) && isValidId(messageId) && isOwner(userId);
+        allow list: if isOwner(userId) && resource.data.userId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(messageId) && isOwner(userId)
+          && parentUserExists(userId)
+          && isValidMessage(incoming(), userId)
+          && incoming().createdAt == request.time;
+        allow update: if false;
+        allow delete: if isValidId(userId) && isValidId(messageId) && isOwner(userId);
+      }
+
+      // Notes Subcollection
+      match /notes/{noteId} {
+        allow get: if isValidId(userId) && isValidId(noteId) && isOwner(userId);
+        allow list: if isOwner(userId) && resource.data.userId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(noteId) && isOwner(userId)
+          && parentUserExists(userId)
+          && isValidNote(incoming(), userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+        allow update: if isValidId(userId) && isValidId(noteId) && isOwner(userId)
+          && parentUserExists(userId)
+          && isValidNote(incoming(), userId)
+          && incoming().userId == existing().userId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'content', 'pinned', 'updatedAt']);
+        allow delete: if isValidId(userId) && isValidId(noteId) && isOwner(userId);
+      }
+
+      // Settings Subcollection (SOUL & Voice Config)
+      match /settings/{settingId} {
+        allow get: if isValidId(userId) && settingId in ['soul', 'voice', 'preferences'] && isOwner(userId);
+        allow list: if isOwner(userId) && resource.data.userId == request.auth.uid;
+        allow create: if isValidId(userId) && settingId in ['soul', 'voice', 'preferences'] && isOwner(userId)
+          && parentUserExists(userId)
+          && isValidSettings(incoming(), userId)
+          && incoming().updatedAt == request.time;
+        allow update: if isValidId(userId) && settingId in ['soul', 'voice', 'preferences'] && isOwner(userId)
+          && parentUserExists(userId)
+          && isValidSettings(incoming(), userId)
+          && incoming().userId == existing().userId
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'assistantName', 'addressTitle', 'personalityTone', 'languages',
+            'customDirectives', 'voiceEngine', 'geminiVoiceName', 'elevenLabsVoiceId',
+            'stability', 'similarity', 'speed', 'autoSpeak', 'wakeWordEnabled',
+            'themeMode', 'modelMode', 'showLatencyTelemetry', 'keepScreenAwake', 'updatedAt'
+          ]);
+        allow delete: if isValidId(userId) && settingId in ['soul', 'voice', 'preferences'] && isOwner(userId);
+      }
+
+      // Creator Studio: Connected Social Platform Metadata
+      match /creatorConnections/{platformId} {
+        allow get: if isValidId(userId) && isValidId(platformId) && isOwner(userId);
+        allow list: if isOwner(userId) && resource.data.userId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(platformId) && isOwner(userId)
+          && parentUserExists(userId)
+          && isValidCreatorConnection(incoming(), userId, platformId)
+          && incoming().updatedAt == request.time;
+        allow update: if isValidId(userId) && isValidId(platformId) && isOwner(userId)
+          && parentUserExists(userId)
+          && isValidCreatorConnection(incoming(), userId, platformId)
+          && incoming().userId == existing().userId
+          && incoming().platform == existing().platform
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'connected', 'accountName', 'handle', 'channelId', 'avatarUrl',
+            'followersCount', 'notes', 'updatedAt'
+          ]);
+        allow delete: if isValidId(userId) && isValidId(platformId) && isOwner(userId);
+      }
+
+      // Creator Studio: Historical Analytics Snapshots
+      match /creatorSnapshots/{snapshotId} {
+        allow get: if isValidId(userId) && isValidId(snapshotId) && isOwner(userId);
+        allow list: if isOwner(userId) && resource.data.userId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(snapshotId) && isOwner(userId)
+          && parentUserExists(userId)
+          && isValidCreatorSnapshot(incoming(), userId)
+          && incoming().createdAt == request.time;
+        allow update: if false;
+        allow delete: if isValidId(userId) && isValidId(snapshotId) && isOwner(userId);
+      }
+
+      // Creator Studio: AI Content Ideas
+      match /creatorIdeas/{ideaId} {
+        allow get: if isValidId(userId) && isValidId(ideaId) && isOwner(userId);
+        allow list: if isOwner(userId) && resource.data.userId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(ideaId) && isOwner(userId)
+          && parentUserExists(userId)
+          && isValidCreatorIdea(incoming(), userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+        allow update: if isValidId(userId) && isValidId(ideaId) && isOwner(userId)
+          && parentUserExists(userId)
+          && isValidCreatorIdea(incoming(), userId)
+          && incoming().userId == existing().userId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']);
+        allow delete: if isValidId(userId) && isValidId(ideaId) && isOwner(userId);
+      }
+
+      // Creator Studio: Scripts & Metadata
+      match /creatorScripts/{scriptId} {
+        allow get: if isValidId(userId) && isValidId(scriptId) && isOwner(userId);
+        allow list: if isOwner(userId) && resource.data.userId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(scriptId) && isOwner(userId)
+          && parentUserExists(userId)
+          && isValidCreatorScript(incoming(), userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+        allow update: if isValidId(userId) && isValidId(scriptId) && isOwner(userId)
+          && parentUserExists(userId)
+          && isValidCreatorScript(incoming(), userId)
+          && incoming().userId == existing().userId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'title', 'format', 'platform', 'durationTarget', 'hook',
+            'body', 'scenesJson', 'seoJson', 'aiProvider', 'updatedAt'
+          ]);
+        allow delete: if isValidId(userId) && isValidId(scriptId) && isOwner(userId);
+      }
+
+      // Creator Studio: Video Production Projects
+      match /creatorProjects/{projectId} {
+        allow get: if isValidId(userId) && isValidId(projectId) && isOwner(userId);
+        allow list: if isOwner(userId) && resource.data.userId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(projectId) && isOwner(userId)
+          && parentUserExists(userId)
+          && isValidCreatorProject(incoming(), userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+        allow update: if isValidId(userId) && isValidId(projectId) && isOwner(userId)
+          && parentUserExists(userId)
+          && isValidCreatorProject(incoming(), userId)
+          && existing().status != 'published'
+          && incoming().userId == existing().userId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'title', 'aspectRatio', 'status', 'currentStep', 'videoProvider',
+            'voiceEngine', 'pipelineJson', 'finalVideoPath', 'captionsPath',
+            'qualityReportJson', 'updatedAt'
+          ]);
+        allow delete: if isValidId(userId) && isValidId(projectId) && isOwner(userId);
+      }
+
+      // Creator Studio: Content Calendar
+      match /creatorCalendar/{entryId} {
+        allow get: if isValidId(userId) && isValidId(entryId) && isOwner(userId);
+        allow list: if isOwner(userId) && resource.data.userId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(entryId) && isOwner(userId)
+          && parentUserExists(userId)
+          && isValidCreatorCalendarEntry(incoming(), userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+        allow update: if isValidId(userId) && isValidId(entryId) && isOwner(userId)
+          && parentUserExists(userId)
+          && isValidCreatorCalendarEntry(incoming(), userId)
+          && incoming().userId == existing().userId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'title', 'platform', 'format', 'scheduledDate', 'status', 'notes', 'updatedAt'
+          ]);
+        allow delete: if isValidId(userId) && isValidId(entryId) && isOwner(userId);
+      }
+
+      // Creator Studio: Published Post History (immutable after creation)
+      match /creatorPosts/{postId} {
+        allow get: if isValidId(userId) && isValidId(postId) && isOwner(userId);
+        allow list: if isOwner(userId) && resource.data.userId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(postId) && isOwner(userId)
+          && parentUserExists(userId)
+          && isValidCreatorPost(incoming(), userId)
+          && incoming().createdAt == request.time;
+        allow update: if false;
+        allow delete: if isValidId(userId) && isValidId(postId) && isOwner(userId);
+      }
+
+      // Creator Studio: Saved Performance & Competitor Reports
+      match /creatorReports/{reportId} {
+        allow get: if isValidId(userId) && isValidId(reportId) && isOwner(userId);
+        allow list: if isOwner(userId) && resource.data.userId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(reportId) && isOwner(userId)
+          && parentUserExists(userId)
+          && isValidCreatorReport(incoming(), userId)
+          && incoming().createdAt == request.time;
+        allow update: if false;
+        allow delete: if isValidId(userId) && isValidId(reportId) && isOwner(userId);
+      }
+    }
+  }
+}

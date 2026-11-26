@@ -1,0 +1,6 @@
+{
+  "name": "J.A.R.V.I.S",
+  "description": "Just A Rather Very Intelligent System — Futuristic voice-first AI personal assistant with animated holographic orb, Gemini Live voice, Google Workspace, Google Maps, persistent memory, and daily tasks.",
+  "requestFramePermissions": ["microphone", "geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

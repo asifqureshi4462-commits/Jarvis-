@@ -1,0 +1,161 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --font-display: 'Chakra Petch', sans-serif;
+    --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+    --hud-bg: #F8FAFC;
+    --hud-surface: #FFFFFF;
+    --hud-surface-2: #F1F5F9;
+    --hud-border: #E2E8F0;
+    --hud-text: #0F172A;
+    --hud-text-muted: #475569;
+  }
+
+  .dark {
+    --hud-bg: #04070D;
+    --hud-surface: #08101E;
+    --hud-surface-2: #050A14;
+    --hud-border: #1E293B;
+    --hud-text: #E2E8F0;
+    --hud-text-muted: #94A3B8;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--hud-bg);
+    color: var(--hud-text);
+    overflow-x: hidden;
+    transition: background-color 280ms cubic-bezier(0.22, 1, 0.36, 1), color 280ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+/* Smooth cross-fade across all UI elements when toggling light/dark/system themes */
+html.theme-transition,
+html.theme-transition *,
+html.theme-transition *::before,
+html.theme-transition *::after {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, box-shadow, outline-color !important;
+  transition-duration: 280ms !important;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.theme-transition,
+  html.theme-transition *,
+  html.theme-transition *::before,
+  html.theme-transition *::after {
+    transition-duration: 0ms !important;
+  }
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-mono-hud {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Custom subtle HUD scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(148, 163, 184, 0.14);
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: rgba(8, 15, 28, 0.6);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(14, 116, 144, 0.35);
+  border-radius: 3px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(34, 211, 238, 0.28);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(14, 116, 144, 0.55);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(34, 211, 238, 0.48);
+}
+
+/* Google Sign-In Official Button styling */
+.gsi-material-button {
+  -moz-user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  -webkit-appearance: none;
+  background-color: var(--hud-surface);
+  background-image: none;
+  border: 1px solid rgba(14, 116, 144, 0.35);
+  border-radius: 10px;
+  box-sizing: border-box;
+  color: var(--hud-text);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  height: 44px;
+  letter-spacing: 0.2px;
+  outline: none;
+  overflow: hidden;
+  padding: 0 14px;
+  position: relative;
+  text-align: center;
+  transition: background-color 0.2s, border-color 0.2s;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.dark .gsi-material-button {
+  background-color: #0B1322;
+  border-color: rgba(56, 189, 248, 0.35);
+  color: #E2E8F0;
+}
+
+.gsi-material-button:hover {
+  background-color: var(--hud-surface-2);
+  border-color: rgba(8, 145, 178, 0.65);
+}
+
+.dark .gsi-material-button:hover {
+  background-color: #111D33;
+  border-color: rgba(34, 211, 238, 0.65);
+}
+
+.gsi-material-button .gsi-material-button-content-wrapper {
+  align-items: center;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  height: 100%;
+  justify-content: center;
+  position: relative;
+  width: 100%;
+}
+
+.gsi-material-button .gsi-material-button-icon {
+  height: 18px;
+  margin-right: 10px;
+  min-width: 18px;
+  width: 18px;
+}
+
+.gsi-material-button .gsi-material-button-contents {
+  flex-grow: 0;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

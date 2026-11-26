@@ -1,0 +1,464 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Private user account profile for J.A.R.V.I.S.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "displayName", "createdAt", "updatedAt"]
+    },
+    "MemoryItem": {
+      "title": "MemoryItem",
+      "description": "Persistent user-approved assistant memory entry.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "content": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "category": {
+          "type": "string",
+          "enum": ["preference", "fact", "project", "contact", "routine"],
+          "maxLength": 32
+        },
+        "importance": {
+          "type": "string",
+          "enum": ["low", "medium", "high"],
+          "maxLength": 16
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["userId", "content", "category", "importance", "createdAt", "updatedAt"]
+    },
+    "TaskItem": {
+      "title": "TaskItem",
+      "description": "User daily task managed via dashboard or voice.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "completed": {
+          "type": "boolean"
+        },
+        "dueDate": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["low", "medium", "high"],
+          "maxLength": 16
+        },
+        "reminderAt": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["userId", "title", "completed", "priority", "createdAt", "updatedAt"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Transcript and conversational message history entry.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["user", "assistant"],
+          "maxLength": 16
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 12000
+        },
+        "language": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "modelUsed": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["userId", "role", "text", "createdAt"]
+    },
+    "NoteItem": {
+      "title": "NoteItem",
+      "description": "Quick personal note synced with J.A.R.V.I.S.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "content": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 6000
+        },
+        "pinned": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["userId", "title", "content", "pinned", "createdAt", "updatedAt"]
+    },
+    "AssistantSettings": {
+      "title": "AssistantSettings",
+      "description": "SOUL personality, voice engine, and assistant configuration.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "assistantName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "addressTitle": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "personalityTone": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 600
+        },
+        "languages": {
+          "type": "array"
+        },
+        "customDirectives": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "voiceEngine": {
+          "type": "string",
+          "enum": ["gemini", "elevenlabs"],
+          "maxLength": 32
+        },
+        "geminiVoiceName": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "elevenLabsVoiceId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "stability": {
+          "type": "number"
+        },
+        "similarity": {
+          "type": "number"
+        },
+        "speed": {
+          "type": "number"
+        },
+        "autoSpeak": {
+          "type": "boolean"
+        },
+        "wakeWordEnabled": {
+          "type": "boolean"
+        },
+        "themeMode": {
+          "type": "string",
+          "enum": ["dark", "light", "system"],
+          "maxLength": 16
+        },
+        "modelMode": {
+          "type": "string",
+          "enum": ["fast", "balanced", "deep"],
+          "maxLength": 16
+        },
+        "showLatencyTelemetry": {
+          "type": "boolean"
+        },
+        "keepScreenAwake": {
+          "type": "boolean"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["userId", "assistantName", "addressTitle", "voiceEngine", "updatedAt"]
+    },
+    "CreatorConnection": {
+      "title": "CreatorConnection",
+      "description": "Public profile metadata for a connected social media platform (never stores secrets or OAuth tokens).",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "platform": { "type": "string", "enum": ["youtube", "instagram", "facebook", "telegram", "x", "linkedin"], "maxLength": 24 },
+        "connected": { "type": "boolean" },
+        "accountName": { "type": "string", "maxLength": 160 },
+        "handle": { "type": "string", "maxLength": 160 },
+        "channelId": { "type": "string", "maxLength": 160 },
+        "avatarUrl": { "type": "string", "maxLength": 600 },
+        "followersCount": { "type": "number" },
+        "notes": { "type": "string", "maxLength": 600 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "platform", "connected", "accountName", "updatedAt"]
+    },
+    "CreatorSnapshot": {
+      "title": "CreatorSnapshot",
+      "description": "Historical analytics snapshot for YouTube, Instagram, or Facebook trend tracking.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "platform": { "type": "string", "enum": ["youtube", "instagram", "facebook"], "maxLength": 24 },
+        "dateRange": { "type": "string", "maxLength": 64 },
+        "summaryJson": { "type": "string", "maxLength": 12000 },
+        "views": { "type": "number" },
+        "subscribers": { "type": "number" },
+        "watchTimeMinutes": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "platform", "dateRange", "summaryJson", "createdAt"]
+    },
+    "CreatorIdea": {
+      "title": "CreatorIdea",
+      "description": "AI Content Strategist topic recommendation and research record.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "topic": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "targetAudience": { "type": "string", "maxLength": 240 },
+        "suggestedFormat": { "type": "string", "maxLength": 80 },
+        "suggestedLength": { "type": "string", "maxLength": 80 },
+        "hook": { "type": "string", "maxLength": 600 },
+        "contentAngle": { "type": "string", "maxLength": 1200 },
+        "researchSources": { "type": "array" },
+        "reason": { "type": "string", "maxLength": 1200 },
+        "confidence": { "type": "string", "enum": ["low", "medium", "high"], "maxLength": 16 },
+        "status": { "type": "string", "enum": ["saved", "scripted", "produced", "archived"], "maxLength": 24 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "topic", "suggestedFormat", "confidence", "status", "createdAt", "updatedAt"]
+    },
+    "CreatorScript": {
+      "title": "CreatorScript",
+      "description": "Short-form or long-form video script, scene plan, and SEO metadata.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "format": { "type": "string", "enum": ["short", "long"], "maxLength": 16 },
+        "platform": { "type": "string", "maxLength": 40 },
+        "durationTarget": { "type": "string", "maxLength": 40 },
+        "hook": { "type": "string", "maxLength": 1000 },
+        "body": { "type": "string", "minLength": 1, "maxLength": 24000 },
+        "scenesJson": { "type": "string", "maxLength": 24000 },
+        "seoJson": { "type": "string", "maxLength": 8000 },
+        "aiProvider": { "type": "string", "maxLength": 32 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "format", "body", "createdAt", "updatedAt"]
+    },
+    "CreatorProject": {
+      "title": "CreatorProject",
+      "description": "12-step AI Video Production Pipeline project record.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "aspectRatio": { "type": "string", "enum": ["9:16", "16:9"], "maxLength": 8 },
+        "status": { "type": "string", "enum": ["draft", "assets_ready", "voiced", "rendered", "verified", "published"], "maxLength": 24 },
+        "currentStep": { "type": "number" },
+        "videoProvider": { "type": "string", "maxLength": 40 },
+        "voiceEngine": { "type": "string", "maxLength": 32 },
+        "pipelineJson": { "type": "string", "maxLength": 32000 },
+        "finalVideoPath": { "type": "string", "maxLength": 400 },
+        "captionsPath": { "type": "string", "maxLength": 400 },
+        "qualityReportJson": { "type": "string", "maxLength": 4000 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "aspectRatio", "status", "currentStep", "createdAt", "updatedAt"]
+    },
+    "CreatorCalendarEntry": {
+      "title": "CreatorCalendarEntry",
+      "description": "Scheduled content calendar item across YouTube, Instagram, Facebook, Telegram, X, LinkedIn.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "platform": { "type": "string", "maxLength": 32 },
+        "format": { "type": "string", "enum": ["short", "long", "post"], "maxLength": 16 },
+        "scheduledDate": { "type": "string", "maxLength": 32 },
+        "status": { "type": "string", "enum": ["planned", "in_production", "scheduled", "published"], "maxLength": 24 },
+        "notes": { "type": "string", "maxLength": 1200 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "platform", "format", "scheduledDate", "status", "createdAt", "updatedAt"]
+    },
+    "CreatorPost": {
+      "title": "CreatorPost",
+      "description": "Published or scheduled social media post log with platform response ID and error tracking.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "platform": { "type": "string", "maxLength": 32 },
+        "title": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "caption": { "type": "string", "maxLength": 5000 },
+        "status": { "type": "string", "enum": ["scheduled", "published", "failed"], "maxLength": 24 },
+        "externalPostId": { "type": "string", "maxLength": 240 },
+        "externalUrl": { "type": "string", "maxLength": 600 },
+        "errorMessage": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "platform", "title", "status", "createdAt"]
+    },
+    "CreatorReport": {
+      "title": "CreatorReport",
+      "description": "Saved performance report or competitor research dossier.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "reportType": { "type": "string", "enum": ["performance", "competitor"], "maxLength": 24 },
+        "summary": { "type": "string", "minLength": 1, "maxLength": 16000 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "reportType", "summary", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Owner-only user profile root document."
+    },
+    "/users/{userId}/memories/{memoryId}": {
+      "schema": { "$ref": "#/entities/MemoryItem" },
+      "description": "Persistent user memories managed by J.A.R.V.I.S."
+    },
+    "/users/{userId}/tasks/{taskId}": {
+      "schema": { "$ref": "#/entities/TaskItem" },
+      "description": "Daily user tasks and reminders."
+    },
+    "/users/{userId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/ChatMessage" },
+      "description": "Transcript and chat conversation messages."
+    },
+    "/users/{userId}/notes/{noteId}": {
+      "schema": { "$ref": "#/entities/NoteItem" },
+      "description": "Personal notes created by voice or dashboard."
+    },
+    "/users/{userId}/settings/{settingId}": {
+      "schema": { "$ref": "#/entities/AssistantSettings" },
+      "description": "SOUL personality and voice configuration."
+    },
+    "/users/{userId}/creatorConnections/{platformId}": {
+      "schema": { "$ref": "#/entities/CreatorConnection" },
+      "description": "Connected social platform profile metadata."
+    },
+    "/users/{userId}/creatorSnapshots/{snapshotId}": {
+      "schema": { "$ref": "#/entities/CreatorSnapshot" },
+      "description": "Historical analytics snapshots for trend tracking."
+    },
+    "/users/{userId}/creatorIdeas/{ideaId}": {
+      "schema": { "$ref": "#/entities/CreatorIdea" },
+      "description": "AI Content Strategist recommendations."
+    },
+    "/users/{userId}/creatorScripts/{scriptId}": {
+      "schema": { "$ref": "#/entities/CreatorScript" },
+      "description": "Short-form and long-form scripts with SEO metadata."
+    },
+    "/users/{userId}/creatorProjects/{projectId}": {
+      "schema": { "$ref": "#/entities/CreatorProject" },
+      "description": "12-step AI Video Production Pipeline projects."
+    },
+    "/users/{userId}/creatorCalendar/{entryId}": {
+      "schema": { "$ref": "#/entities/CreatorCalendarEntry" },
+      "description": "Creator Studio content calendar."
+    },
+    "/users/{userId}/creatorPosts/{postId}": {
+      "schema": { "$ref": "#/entities/CreatorPost" },
+      "description": "Published post log and error audit."
+    },
+    "/users/{userId}/creatorReports/{reportId}": {
+      "schema": { "$ref": "#/entities/CreatorReport" },
+      "description": "Saved analytics and competitor research reports."
+    }
+  }
+}
