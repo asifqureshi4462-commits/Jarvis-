@@ -147,7 +147,7 @@ jobs:
           cd android
           chmod +x gradlew
 
-          if [ "$BUILD_TYPE" = "release" ] && [ -n "$KEYSTORE_B64" ]; then
+          if [ "$BUILD_TYPE" = "release" ] && -n "$KEYSTORE_B64" ]; then
             echo "$KEYSTORE_B64" | base64 --decode > app/release.keystore
             ./gradlew assembleRelease --no-daemon --stacktrace \
               -Pandroid.injected.signing.store.file="$(pwd)/app/release.keystore" \
