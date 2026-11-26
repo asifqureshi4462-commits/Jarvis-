@@ -48,6 +48,12 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Install Android SDK packages
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null 2>&1 || true
+          sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
       - name: Install dependencies (bun.lock / npm compatible)
         run: npm install --legacy-peer-deps
 
@@ -58,7 +64,7 @@ jobs:
         run: npm run build
 
       - name: Install Capacitor CLI & Android runtime
-        run: npm install --no-save --legacy-peer-deps @capacitor/core@7.6.11 @capacitor/cli@7.6.11 @capacitor/android@7.6.11
+        run: npm install --no-save --legacy-peer-deps @capacitor/core@7.6.1 @capacitor/cli@7.6.1 @capacitor/android@7.6.1
 
       - name: Configure Capacitor server URL (if provided)
         env:
@@ -88,8 +94,6 @@ jobs:
         run: |
           node -e '
             const fs = require("fs");
-            const path = require("path");
-
             const manifestPath = "android/app/src/main/AndroidManifest.xml";
             if (fs.existsSync(manifestPath)) {
               let xml = fs.readFileSync(manifestPath, "utf8");
@@ -119,13 +123,13 @@ jobs:
             if (fs.existsSync(icon512) && fs.existsSync(resDir)) {
               for (const entry of fs.readdirSync(resDir)) {
                 if (!entry.startsWith("mipmap-") || entry.includes("anydpi")) continue;
-                const dir = path.join(resDir, entry);
+                const dir = require("path").join(resDir, entry);
                 if (!fs.statSync(dir).isDirectory()) continue;
-                for (const name of ["ic_launcher.png", "ic_launcher_round.png"]) {
-                  const dest = path.join(dir, name);
+                for (const name of ["ic_launcher.png", "ic_launcher_round.png"] ) {
+                  const dest = require("path").join(dir, name);
                   if (fs.existsSync(dest)) fs.copyFileSync(icon512, dest);
                 }
-                const fg = path.join(dir, "ic_launcher_foreground.png");
+                const fg = require("path").join(dir, "ic_launcher_foreground.png");
                 if (fs.existsSync(fg)) {
                   fs.copyFileSync(fs.existsSync(iconMaskable) ? iconMaskable : icon512, fg);
                 }
@@ -150,7 +154,7 @@ jobs:
           if [ "$BUILD_TYPE" = "release" ] && -n "$KEYSTORE_B64" ]; then
             echo "$KEYSTORE_B64" | base64 --decode > app/release.keystore
             ./gradlew assembleRelease --no-daemon --stacktrace \
-              -Pandroid.injected.signing.store.file="$(pwd)/app/release.keystore" \
+              -Pandroid.injected.signing.store.file="$PWD/app/release.keystore" \
               -Pandroid.injected.signing.store.password="$KEYSTORE_PASS" \
               -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
               -Pandroid.injected.signing.key.password="$KEY_PASS"
