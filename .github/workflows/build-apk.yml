@@ -1,0 +1,181 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: "APK build type (debug works immediately without keystore secrets)"
+        required: true
+        default: "debug"
+        type: choice
+        options:
+          - debug
+          - release
+      server_url:
+        description: "Optional live backend/app URL (e.g. https://your-app.run.app). Leave empty for bundled dist/."
+        required: false
+        default: ""
+        type: string
+  push:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    name: Build J.A.R.V.I.S Android APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup Java 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies (bun.lock / npm compatible)
+        run: npm install --legacy-peer-deps
+
+      - name: TypeScript typecheck
+        run: npx tsc --noEmit
+
+      - name: Build web bundle (dist/)
+        run: npm run build
+
+      - name: Install Capacitor CLI & Android runtime
+        run: npm install --no-save --legacy-peer-deps @capacitor/core@7.6.11 @capacitor/cli@7.6.11 @capacitor/android@7.6.11
+
+      - name: Configure Capacitor server URL (if provided)
+        env:
+          INPUT_SERVER_URL: ${{ inputs.server_url }}
+          VAR_SERVER_URL: ${{ vars.JARVIS_SERVER_URL }}
+        run: |
+          node -e '
+            const fs = require("fs");
+            const cfgPath = "capacitor.config.json";
+            const cfg = JSON.parse(fs.readFileSync(cfgPath, "utf8"));
+            const targetUrl = (process.env.INPUT_SERVER_URL || process.env.VAR_SERVER_URL || "").trim();
+            if (targetUrl) {
+              cfg.server = { ...(cfg.server || {}), url: targetUrl, cleartext: false };
+              console.log("Configured Capacitor server.url:", targetUrl);
+            }
+            fs.writeFileSync(cfgPath, JSON.stringify(cfg, null, 2) + "\n");
+          '
+
+      - name: Generate Android project & sync web assets
+        run: |
+          if [ ! -d "android" ]; then
+            npx cap add android
+          fi
+          npx cap sync android
+
+      - name: Apply Android permissions & J.A.R.V.I.S app icons
+        run: |
+          node -e '
+            const fs = require("fs");
+            const path = require("path");
+
+            const manifestPath = "android/app/src/main/AndroidManifest.xml";
+            if (fs.existsSync(manifestPath)) {
+              let xml = fs.readFileSync(manifestPath, "utf8");
+              const perms = [
+                "android.permission.INTERNET",
+                "android.permission.RECORD_AUDIO",
+                "android.permission.MODIFY_AUDIO_SETTINGS",
+                "android.permission.CAMERA",
+                "android.permission.ACCESS_FINE_LOCATION",
+                "android.permission.ACCESS_COARSE_LOCATION",
+                "android.permission.WAKE_LOCK"
+              ];
+              const missing = perms
+                .filter((p) => !xml.includes(p))
+                .map((p) => `    <uses-permission android:name="${p}" />`)
+                .join("\n");
+              if (missing) {
+                xml = xml.replace("<application", `${missing}\n\n    <application`);
+                fs.writeFileSync(manifestPath, xml, "utf8");
+                console.log("Updated AndroidManifest.xml permissions.");
+              }
+            }
+
+            const icon512 = "public/pwa-512x512.png";
+            const iconMaskable = "public/pwa-maskable-512x512.png";
+            const resDir = "android/app/src/main/res";
+            if (fs.existsSync(icon512) && fs.existsSync(resDir)) {
+              for (const entry of fs.readdirSync(resDir)) {
+                if (!entry.startsWith("mipmap-") || entry.includes("anydpi")) continue;
+                const dir = path.join(resDir, entry);
+                if (!fs.statSync(dir).isDirectory()) continue;
+                for (const name of ["ic_launcher.png", "ic_launcher_round.png"]) {
+                  const dest = path.join(dir, name);
+                  if (fs.existsSync(dest)) fs.copyFileSync(icon512, dest);
+                }
+                const fg = path.join(dir, "ic_launcher_foreground.png");
+                if (fs.existsSync(fg)) {
+                  fs.copyFileSync(fs.existsSync(iconMaskable) ? iconMaskable : icon512, fg);
+                }
+              }
+              console.log("Synced J.A.R.V.I.S launcher icons.");
+            }
+          '
+
+      - name: Build Android APK
+        id: build_apk
+        env:
+          BUILD_TYPE: ${{ inputs.build_type || 'debug' }}
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          mkdir -p release-artifacts
+          cd android
+          chmod +x gradlew
+
+          if [ "$BUILD_TYPE" = "release" ] && [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 --decode > app/release.keystore
+            ./gradlew assembleRelease --no-daemon --stacktrace \
+              -Pandroid.injected.signing.store.file="$(pwd)/app/release.keystore" \
+              -Pandroid.injected.signing.store.password="$KEYSTORE_PASS" \
+              -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
+              -Pandroid.injected.signing.key.password="$KEY_PASS"
+            APK_SRC="app/build/outputs/apk/release/app-release.apk"
+            APK_OUT="../release-artifacts/JARVIS-AI-Assistant-release.apk"
+          else
+            if [ "$BUILD_TYPE" = "release" ]; then
+              echo "No ANDROID_KEYSTORE_BASE64 secret found; building installable debug-signed APK instead."
+            fi
+            ./gradlew assembleDebug --no-daemon --stacktrace
+            APK_SRC="app/build/outputs/apk/debug/app-debug.apk"
+            APK_OUT="../release-artifacts/JARVIS-AI-Assistant.apk"
+          fi
+
+          if [ ! -f "$APK_SRC" ]; then
+            echo "ERROR: Expected APK not found at $APK_SRC"
+            exit 1
+          fi
+          cp "$APK_SRC" "$APK_OUT"
+          ls -lh "$APK_OUT"
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: JARVIS-Android-APK
+          path: release-artifacts/*.apk
+          if-no-files-found: error
+          retention-days: 30

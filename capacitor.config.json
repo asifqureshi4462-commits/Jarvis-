@@ -1,0 +1,13 @@
+{
+  "appId": "com.asifqureshi.jarvis",
+  "appName": "J.A.R.V.I.S",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
+  }
+}
