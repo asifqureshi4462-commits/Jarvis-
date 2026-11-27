@@ -86,8 +86,8 @@ export function routeLocalCommand(
       return {
         type: 'reply_only',
         reply: hiUr
-          ? `Main Firebase Cloud Firestore (Database ID: ai-studio-dba2849e-6a5b-4507-8510-cd7086ef15ef) aur local preference storage ka istemal karta hoon, ${title}.`
-          : `I use Firebase Cloud Firestore 13.4.0 (Database ID: ai-studio-dba2849e-6a5b-4507-8510-cd7086ef15ef) with user-isolated collections for memories, tasks, notes, messages, settings, and Creator Studio, plus localStorage for instant theme hydration, ${title}.`,
+          ? `Main Firebase Cloud Firestore (Database ID: (default)) aur local preference storage ka istemal karta hoon, ${title}.`
+          : `I use Firebase Cloud Firestore 13.4.0 (Database ID: (default)) with user-isolated collections for memories, tasks, notes, messages, settings, and Creator Studio, plus localStorage for instant theme hydration, ${title}.`,
       };
     }
 
