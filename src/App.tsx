@@ -486,6 +486,19 @@ export default function App() {
     }
   };
 
+  const handleWorkspaceConnect = async () => {
+    try {
+      const { user: signedInUser, accessToken: tok } = await googleSignIn(true);
+      setUser(signedInUser);
+      setAccessToken(tok);
+      setVoiceErrorBanner(null);
+    } catch (err) {
+      setVoiceErrorBanner(
+        err instanceof Error ? err.message : 'Google Workspace connect failed.'
+      );
+    }
+  };
+
   const handleGoogleSignOut = async () => {
     await logout();
     setUser(null);
@@ -3114,7 +3127,7 @@ export default function App() {
               accessToken={accessToken}
               user={user}
               notes={notes}
-              onGoogleSignIn={handleGoogleSignIn}
+              onGoogleSignIn={handleWorkspaceConnect}
               onAddNote={async (title, content) => {
                 if (!user) return;
                 await addNote(user.uid, title, content);
