@@ -935,7 +935,7 @@ export const WorkspaceHub: React.FC<WorkspaceHubProps> = ({
                   <div className="rounded-xl border border-amber-500/30 bg-amber-50 dark:bg-amber-950/20 p-3 text-xs text-amber-900 dark:text-amber-200 space-y-2">
                     <p>{chatNotice}</p>
                     <a
-                      href="https://console.cloud.google.com/apis/api/chat.googleapis.com/hangouts-chat?project=gen-lang-client-0689307187"
+                      href="https://console.cloud.google.com/apis/api/chat.googleapis.com/hangouts-chat?project=jarvis-881a1"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 underline text-amber-800 dark:text-amber-300"
