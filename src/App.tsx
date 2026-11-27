@@ -2248,7 +2248,7 @@ export default function App() {
       : `Gemini Male (${voice.geminiVoiceName})`;
 
   return (
-    <div className="min-h-screen bg-[#F4F7FB] dark:bg-[#04070D] text-slate-900 dark:text-slate-100 flex flex-col pb-20 md:pb-0 transition-colors">
+    <div className="min-h-dvh bg-[#F4F7FB] dark:bg-[#04070D] text-slate-900 dark:text-slate-100 flex flex-col pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0 transition-colors">
       {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
 
       {/* Hidden Gallery Picker */}
@@ -2291,7 +2291,7 @@ export default function App() {
       )}
 
       {/* Futuristic Top HUD Header */}
-      <header className="sticky top-0 z-40 border-b border-slate-200 dark:border-cyan-500/20 bg-white/90 dark:bg-[#04070D]/90 backdrop-blur-md">
+      <header className="sticky top-0 z-40 pt-[env(safe-area-inset-top)] border-b border-slate-200 dark:border-cyan-500/20 bg-white/90 dark:bg-[#04070D]/90 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 h-14 flex items-center justify-between gap-2">
           <button
             type="button"
@@ -3213,7 +3213,7 @@ export default function App() {
       {/* Clean 6-Item Mobile Bottom Navigation Bar (56px height keeps sticky top+bottom <= 15% of mobile viewport) */}
       <nav
         aria-label="Mobile HUD Navigation"
-        className="md:hidden fixed bottom-0 inset-x-0 z-40 h-14 border-t border-slate-200 dark:border-cyan-500/25 bg-white/95 dark:bg-[#04070D]/95 backdrop-blur-md px-1 grid grid-cols-6 gap-0.5 items-center"
+        className="md:hidden fixed bottom-0 inset-x-0 z-40 h-[calc(3.5rem+env(safe-area-inset-bottom))] pb-[env(safe-area-inset-bottom)] border-t border-slate-200 dark:border-cyan-500/25 bg-white/95 dark:bg-[#04070D]/95 backdrop-blur-md px-1 grid grid-cols-6 gap-0.5 items-center"
       >
         {mobileBottomNav.map((item) => {
           const active = activeSection === item.id;
