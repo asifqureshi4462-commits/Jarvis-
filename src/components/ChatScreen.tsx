@@ -78,7 +78,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-12rem)] min-h-[480px] rounded-2xl border border-slate-200 dark:border-cyan-500/25 bg-white dark:bg-[#08101E]/95 overflow-hidden shadow-sm">
+    <div className="flex flex-col h-[calc(100dvh-12rem)] min-h-[320px] rounded-2xl border border-slate-200 dark:border-cyan-500/25 bg-white dark:bg-[#08101E]/95 overflow-hidden shadow-sm">
       {/* Header Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-slate-200 dark:border-slate-800/90 bg-slate-50 dark:bg-[#050A14]">
         <div className="flex items-center gap-2.5">
