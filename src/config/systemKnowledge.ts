@@ -40,7 +40,7 @@ export const VERIFIED_TECHNICAL_KNOWLEDGE = {
     'Server-Sent Events (SSE) streaming (/api/jarvis/chat/stream)',
   ],
   databaseAndStorage: [
-    'Firebase Cloud Firestore 13.4.0 (Database ID: ai-studio-dba2849e-6a5b-4507-8510-cd7086ef15ef, Project: gen-lang-client-0689307187)',
+    'Firebase Cloud Firestore 13.4.0 (Database ID: (default), Project: jarvis-881a1)',
     'Browser localStorage for instant theme & UI preference hydration',
   ],
   authenticationSystem: [
