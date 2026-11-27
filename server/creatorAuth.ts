@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { NextFunction, Request, Response } from "express";
 
-const FIREBASE_PROJECT_ID = "gen-lang-client-0689307187";
+const FIREBASE_PROJECT_ID = process.env.FIREBASE_PROJECT_ID || "jarvis-881a1";
 const CERTS_URL =
   "https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com";
 
