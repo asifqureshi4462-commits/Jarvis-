@@ -169,7 +169,7 @@ export const HeadlinesPanel: React.FC<HeadlinesPanelProps> = ({
           onClick={() => setModalOpen(false)}
         >
           <div
-            className="w-full max-w-xl max-h-[82vh] flex flex-col rounded-2xl border border-cyan-500/35 bg-white dark:bg-[#08101E] text-slate-900 dark:text-slate-100 shadow-2xl overflow-hidden"
+            className="w-full max-w-xl max-h-[82dvh] flex flex-col rounded-2xl border border-cyan-500/35 bg-white dark:bg-[#08101E] text-slate-900 dark:text-slate-100 shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
