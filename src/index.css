@@ -159,3 +159,66 @@ html.theme-transition *::after {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+
+/* ===== Responsive safety layer (mobile / tablet / desktop) ===== */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  min-height: 100dvh;
+  max-width: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#root {
+  min-width: 0;
+  max-width: 100%;
+}
+
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
+}
+
+pre,
+code {
+  overflow-wrap: anywhere;
+}
+
+/* Prevent iOS/Android from zooming the page when an input is focused */
+@media (max-width: 767px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+/* Full-screen overlays/modals: stay inside the visible screen, scroll if the
+   dialog is taller than the screen (small phones, landscape, keyboard open). */
+.fixed.inset-0.z-50:not(.flex-col) {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-top: max(1rem, env(safe-area-inset-top));
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+
+.fixed.inset-0.z-50:not(.flex-col) > * {
+  margin-top: auto;
+  margin-bottom: auto;
+  max-width: 100%;
+}
+
+/* Wide tables/code blocks scroll inside their own box instead of the page */
+table {
+  max-width: 100%;
+}
