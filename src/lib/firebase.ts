@@ -38,9 +38,7 @@ import type {
 } from '../types/jarvis';
 
 const app = initializeApp(firebaseConfig);
-const firestoreDatabaseId =
-  firebaseConfig.firestoreDatabaseId ||
-  'ai-studio-dba2849e-6a5b-4507-8510-cd7086ef15ef';
+const firestoreDatabaseId = firebaseConfig.firestoreDatabaseId || '(default)';
 
 function createFirestoreInstance() {
   try {
@@ -84,8 +82,48 @@ export const WORKSPACE_SCOPES = [
   'https://www.googleapis.com/auth/contacts.readonly',
 ];
 
-const provider = new GoogleAuthProvider();
-WORKSPACE_SCOPES.forEach((scope) => provider.addScope(scope));
+// Basic sign-in: only name + email. Works for any Google account without
+// Google app verification.
+const basicProvider = new GoogleAuthProvider();
+basicProvider.setCustomParameters({ prompt: 'select_account' });
+
+// Workspace sign-in: asks for Gmail/Calendar/Drive/etc. Only used when the
+// user taps "Connect Google" inside the Workspace screen.
+const workspaceProvider = new GoogleAuthProvider();
+WORKSPACE_SCOPES.forEach((scope) => workspaceProvider.addScope(scope));
+workspaceProvider.setCustomParameters({ prompt: 'select_account' });
+
+function friendlyAuthError(err: unknown): Error {
+  const code =
+    typeof err === 'object' && err !== null && 'code' in err
+      ? String((err as { code: unknown }).code)
+      : '';
+  switch (code) {
+    case 'auth/unauthorized-domain':
+      return new Error(
+        'Is website ka domain Firebase me authorized nahi hai. Firebase Console > Authentication > Settings > Authorized domains me apna Render domain add karo.'
+      );
+    case 'auth/operation-not-allowed':
+      return new Error(
+        'Google sign-in Firebase me enable nahi hai. Firebase Console > Authentication > Sign-in method > Google ko Enable karo.'
+      );
+    case 'auth/popup-blocked':
+      return new Error(
+        'Browser ne sign-in popup block kiya. Popups allow karke dobara try karo.'
+      );
+    case 'auth/popup-closed-by-user':
+    case 'auth/cancelled-popup-request':
+      return new Error('Sign-in cancel ho gaya. Dobara try karo.');
+    case 'auth/network-request-failed':
+      return new Error('Internet connection check karo aur dobara try karo.');
+    case 'auth/web-storage-unsupported':
+      return new Error(
+        'Is browser/WebView me sign-in supported nahi hai. Chrome me app kholo.'
+      );
+    default:
+      return err instanceof Error ? err : new Error('Google Sign-In failed.');
+  }
+}
 
 let isSigningIn = false;
 let cachedAccessToken: string | null = null;
@@ -205,17 +243,24 @@ export function initAuth(
   });
 }
 
-export async function googleSignIn(): Promise<{
+export async function googleSignIn(withWorkspace = false): Promise<{
   user: User;
   accessToken: string | null;
 }> {
   try {
     isSigningIn = true;
-    const result = await signInWithPopup(auth, provider);
-    const credential = GoogleAuthProvider.credentialFromResult(result);
-    cachedAccessToken = credential?.accessToken ?? null;
+    const result = await signInWithPopup(
+      auth,
+      withWorkspace ? workspaceProvider : basicProvider
+    );
+    if (withWorkspace) {
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      cachedAccessToken = credential?.accessToken ?? null;
+    }
     await ensureUserRootDoc(result.user);
     return { user: result.user, accessToken: cachedAccessToken };
+  } catch (err) {
+    throw friendlyAuthError(err);
   } finally {
     isSigningIn = false;
   }
