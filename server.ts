@@ -402,7 +402,15 @@ const newsCache: Record<
 
 async function startServer() {
   const app = express();
-  const allowedOrigins = ["https://localhost", "http://localhost", "capacitor://localhost"];
+  const allowedOrigins = [
+    "https://localhost",
+    "http://localhost",
+    "capacitor://localhost",
+    ...(process.env.ALLOWED_ORIGINS || "")
+      .split(",")
+      .map((o) => o.trim())
+      .filter(Boolean),
+  ];
   app.use((req, res, next) => {
     const origin = req.headers.origin;
     if (origin && allowedOrigins.includes(origin)) {
@@ -419,6 +427,30 @@ async function startServer() {
   });
   app.use(express.json({ limit: "25mb" }));
 
+  // Voice provider selection: ElevenLabs if its key exists, otherwise Fish Audio.
+  // Force one with VOICE_PROVIDER=fishaudio or VOICE_PROVIDER=elevenlabs.
+  function resolveVoiceProvider(): "elevenlabs" | "fishaudio" | "none" {
+    const preferred = (process.env.VOICE_PROVIDER || "").trim().toLowerCase();
+    const hasEleven = Boolean(process.env.ELEVENLABS_API_KEY);
+    const hasFish = Boolean(process.env.FISH_AUDIO_API_KEY);
+    if (preferred === "fishaudio" && hasFish) return "fishaudio";
+    if (preferred === "elevenlabs" && hasEleven) return "elevenlabs";
+    if (hasEleven) return "elevenlabs";
+    if (hasFish) return "fishaudio";
+    return "none";
+  }
+
+  // Simple uptime check for Render / uptime monitors
+  app.get("/health", (_req: Request, res: Response) => {
+    res.json({
+      status: "ok",
+      uptimeSeconds: Math.round(process.uptime()),
+      geminiConfigured: Boolean(process.env.GEMINI_API_KEY),
+      voiceProvider: resolveVoiceProvider(),
+      timestamp: new Date().toISOString(),
+    });
+  });
+
   // Health & real connection status
   app.get("/api/health", (_req: Request, res: Response) => {
     const rawEnvVoice = process.env.ELEVENLABS_VOICE_ID;
@@ -431,6 +463,8 @@ async function startServer() {
       status: "online",
       geminiConfigured: Boolean(process.env.GEMINI_API_KEY),
       elevenLabsConfigured: Boolean(process.env.ELEVENLABS_API_KEY),
+      fishAudioConfigured: Boolean(process.env.FISH_AUDIO_API_KEY),
+      voiceProvider: resolveVoiceProvider(),
       elevenLabsVoiceIdValid: voiceValidation.valid,
       elevenLabsDefaultVoiceId: defaultVoiceId,
       elevenLabsDefaultModelId: "eleven_flash_v2_5",
@@ -919,7 +953,7 @@ async function startServer() {
       return {
         ok: false,
         status: 400,
-        error: "ELEVENLABS_API_KEY is missing in server Secrets. Male ElevenLabs voice cannot start.",
+        error: "Voice API key is missing in server environment. Set FISH_AUDIO_API_KEY (or ELEVENLABS_API_KEY) in Render Environment Variables.",
       };
     }
 
@@ -970,7 +1004,75 @@ async function startServer() {
     };
   }
 
-  // Streaming Voice Synthesis (Low-latency ElevenLabs MP3 byte stream)
+  // Fish Audio text-to-speech (MP3 byte stream). Key stays on the server only.
+  async function streamFishAudio(
+    res: Response,
+    text: string,
+    speed: unknown
+  ): Promise<void> {
+    const apiKey = (process.env.FISH_AUDIO_API_KEY || "").trim();
+    if (!apiKey) {
+      res.status(400).json({
+        error: "FISH_AUDIO_API_KEY is missing in server environment variables.",
+      });
+      return;
+    }
+
+    const controller = new AbortController();
+    res.on("close", () => {
+      if (!res.writableFinished) controller.abort();
+    });
+
+    const fishBody: Record<string, unknown> = {
+      text: text.slice(0, 2500),
+      format: "mp3",
+      latency: "balanced",
+      normalize: true,
+    };
+    const referenceId = (process.env.FISH_AUDIO_REFERENCE_ID || "").trim();
+    if (referenceId) fishBody.reference_id = referenceId;
+    const speedValue = Math.min(2, Math.max(0.5, Number(speed) || 1));
+    if (Math.abs(speedValue - 1) > 0.01) {
+      fishBody.prosody = { speed: speedValue, volume: 0 };
+    }
+
+    const fishModel = (process.env.FISH_AUDIO_MODEL || "s2-pro").trim();
+    const fishRes = await fetch("https://api.fish.audio/v1/tts", {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        model: fishModel,
+      },
+      body: JSON.stringify(fishBody),
+    });
+
+    if (!fishRes.ok || !fishRes.body) {
+      const errText = (await fishRes.text().catch(() => "")).slice(0, 300);
+      res.status(fishRes.status || 502).json({
+        error: `Fish Audio error (${fishRes.status}): ${errText || "request refused"}`,
+      });
+      return;
+    }
+
+    res.setHeader("Content-Type", "audio/mpeg");
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("X-Voice-Engine", "fishaudio");
+    res.setHeader("X-Voice-Model", fishModel);
+
+    const reader = fishRes.body.getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value && value.byteLength > 0 && !res.writableEnded) {
+        res.write(Buffer.from(value));
+      }
+    }
+    if (!res.writableEnded) res.end();
+  }
+
+  // Streaming Voice Synthesis (Low-latency MP3 byte stream: Fish Audio or ElevenLabs)
   app.post("/api/jarvis/tts/stream", async (req: Request, res: Response) => {
     try {
       const {
@@ -984,6 +1086,11 @@ async function startServer() {
 
       if (typeof text !== "string" || !text.trim()) {
         return res.status(400).json({ error: "Text is required for speech output." });
+      }
+
+      if (resolveVoiceProvider() === "fishaudio") {
+        await streamFishAudio(res, text, speed);
+        return;
       }
 
       const cfg = resolveElevenLabsConfig(elevenLabsVoiceId, modelId);
