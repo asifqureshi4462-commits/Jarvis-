@@ -103,6 +103,16 @@ function friendlyAuthError(err: unknown): Error {
       return new Error(
         'Is website ka domain Firebase me authorized nahi hai. Firebase Console > Authentication > Settings > Authorized domains me apna Render domain add karo.'
       );
+    case 'auth/internal-error':
+    case 'auth/configuration-not-found':
+      return new Error(
+        'Firebase login set up nahi hai. Firebase Console > Authentication > Get started dabao, phir Sign-in method > Google ko Enable karo. Phir 2-3 minute baad dobara try karo.'
+      );
+    case 'auth/invalid-api-key':
+    case 'auth/api-key-not-valid.-please-pass-a-valid-api-key.':
+      return new Error(
+        'Firebase API key galat hai. firebase-applet-config.json me apiKey check karo.'
+      );
     case 'auth/operation-not-allowed':
       return new Error(
         'Google sign-in Firebase me enable nahi hai. Firebase Console > Authentication > Sign-in method > Google ko Enable karo.'
